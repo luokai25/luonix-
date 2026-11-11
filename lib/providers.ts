@@ -1,7 +1,7 @@
 export type Provider =
   | "openai" | "anthropic" | "gemini" | "groq" | "openrouter"
   | "aion" | "mistral" | "zai" | "kilo" | "llm7"
-  | "nvidia" | "modelscope" | "ovh" | "siliconflow" | "gonka";
+  | "nvidia" | "modelscope" | "ovh" | "siliconflow" | "gonka" | "cloudflare";
 
 export type ProviderDefinition = {
   id: Provider;
@@ -27,6 +27,7 @@ export const PROVIDERS: ProviderDefinition[] = [
   { id: "ovh", name: "OVHcloud AI Endpoints", baseUrl: "https://oai.endpoints.kepler.ai.cloud.ovh.net/v1", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: false, note: "Anonymous access is heavily rate-limited." },
   { id: "siliconflow", name: "SiliconFlow", baseUrl: "https://api.siliconflow.cn/v1", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: true, note: "Identity verification may be required." },
   { id: "gonka", name: "Gonka Broker", baseUrl: "https://proxy.gonkabroker.com/v1", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: true, note: "Phone verification may be required; free quota is shared and model availability rotates." },
+  { id: "cloudflare", name: "Cloudflare Workers AI", baseUrl: "https://api.cloudflare.com/client/v4/accounts", modelsPath: "/{accountId}/ai/v1/models", chatPath: "/{accountId}/ai/v1/chat/completions", requiresApiKey: true, note: "Save credentials as ACCOUNT_ID|API_TOKEN. Free usage is measured in Neurons." },
   { id: "openai", name: "OpenAI", baseUrl: "https://api.openai.com/v1", modelsPath: "/models", chatPath: "/responses", requiresApiKey: true },
   { id: "anthropic", name: "Anthropic", baseUrl: "https://api.anthropic.com/v1", modelsPath: "/models", chatPath: "/messages", requiresApiKey: true },
 ];
