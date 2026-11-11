@@ -96,6 +96,7 @@ export async function POST(req: NextRequest) {
     }).join("\n\n---\n\n");
     const successfulQueries = settled.filter(x => x.results.length).length;
     return NextResponse.json({
+      idea,
       queries,
       stats: {
         queriesRun: queries.length,
