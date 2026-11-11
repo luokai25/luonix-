@@ -1,42 +1,74 @@
 # Luonix Ø
 
-Luonix is a browser-based AI Product Studio for turning ideas into structured, editable digital products.
+Luonix is a browser-based AI Product Studio for researching opportunities and producing editable, sellable digital products.
 
 ## Product workflow
 
-- Opportunity brief and validation plan
+- Evidence-led market research across ten query angles, with up to 200 search-result records per run
+- Deduplicated source list, domain diversity and selected source excerpts passed into the generation context
+- Opportunity brief with evidence, inference, unknowns and a go / revise / reject recommendation
 - Product outline and transformation map
-- Full digital-product generation
+- Resumable, section-by-section eBook manuscript generation with a persistent chapter plan and local checkpoints
 - Brand kit and sales page
 - Editable Markdown source, sanitized preview, Markdown/HTML export, and browser print-to-PDF
 - Local project library (up to 30 recent projects)
 
 ## AI providers
 
-The app currently supports bring-your-own-key connections for:
+The provider registry includes the following OpenAI-compatible or native chat providers:
 
-- OpenAI
-- Anthropic
-- Google AI Studio (Gemini)
 - Groq
 - OpenRouter
+- Google AI Studio (Gemini)
+- Aion Labs
+- Mistral AI
+- Z AI
+- Kilo Gateway (keyless endpoint)
+- LLM7 (keyless endpoint)
+- NVIDIA NIM
+- ModelScope
+- OVHcloud AI Endpoints (anonymous endpoint)
+- SiliconFlow
+- Gonka Broker
+- Cloudflare Workers AI (save credentials as `ACCOUNT_ID|API_TOKEN`)
+- OpenAI
+- Anthropic
 
-Model discovery is requested live from each provider's model endpoint. Model IDs are not treated as permanent constants: choose a discovered model or enter an exact model ID manually.
+The provider list is based in part on the maintained [awesome-free-llm-apis catalogue](https://github.com/mnfst/awesome-free-llm-apis). It is a directory, not an API itself. Luonix implements provider endpoints and requests model discovery live; a provider being listed does not guarantee that a free model, account, region or quota is available. Cohere's listed trial tier is non-commercial, so it is deliberately not enabled for this commercial-product workflow.
 
-Per-stage model overrides can be saved for the opportunity brief, outline, transformation map, full product, brand kit, and sales page. OpenRouter models with zero listed prompt/completion pricing are labelled FREE; provider/account-level free quotas are separate. The default provider order prioritizes Groq, OpenRouter, and Google AI Studio. The [awesome-free-llm-apis catalogue](https://github.com/mnfst/awesome-free-llm-apis) can help discover more providers, but the catalogue itself is not an API endpoint.
+Model IDs are not treated as permanent constants: choose a discovered model or enter an exact model ID manually. Per-stage model overrides can be saved for the opportunity brief, outline, transformation map, full product, brand kit, and sales page.
 
 ### Intelligent fallback
 
-The selected provider/model is tried first. If the provider reports a rate limit, temporary availability error, timeout, or server error, Luonix may try the other providers for which you have saved keys and can discover an available model. Authentication and other non-retryable errors stop the fallback chain and are shown with provider diagnostics.
+The selected provider/model is tried first. If it reports a rate limit, temporary availability error, timeout, unsupported model or server error, Luonix may try other configured providers. Authentication errors stop the fallback chain and are shown with diagnostics.
 
-Luonix does not rotate multiple keys from the same provider to bypass quotas. Provider limits are determined by the provider, account, model, and plan; adding more keys does not automatically multiply an account's allowance. Free tiers, eligible models, commercial-use permissions, and data-use policies can change; check the provider's current terms before using customer or confidential material. Rate-limit responses are surfaced in the generation status and error details.
+Luonix does not rotate multiple keys from the same provider to bypass quotas. Provider limits are determined by provider, account, model and plan; adding more keys does not automatically multiply an account's allowance. Free tiers, eligible models, commercial-use permissions and data-use policies can change. Review provider terms before sending customer or confidential material.
+
+## Web research engine
+
+The research route uses Tavily Search. It runs ten targeted searches covering pain points, audience needs, alternatives, negative reviews, pricing and willingness to pay, market evidence, community questions, existing educational products, underserved gaps and case studies.
+
+- Up to 20 results per query (up to 200 result records before URL deduplication)
+- Up to 45 top-ranked source excerpts included in the model's research context
+- Up to 200 unique source links shown in the research response
+- Source IDs such as `[S1]` are used for citations in generated briefs and manuscripts
+- Source content is treated as untrusted input; instructions embedded in pages are not followed
+- Research is tied to the exact idea so evidence from an old project is not silently reused
+
+A Tavily API key is required. Save it in Settings; it is encrypted locally using the same browser vault. The key is decrypted in the browser and sent to the same-origin research route for the request only. Tavily currently documents 1,000 free API credits per month; advanced search costs 2 credits per query, so a ten-query run can use up to 20 credits. Check current pricing and terms before running large research jobs.
+
+## Long-form eBook generation
+
+For eBooks, Luonix first asks a model for a structured book plan, then writes the introduction, core chapters, conclusion and two bonus assets in separate model requests. Each completed section is saved to the local project library. If a request fails or the browser closes, reopen the saved project and run Create Product again to continue from completed sections.
+
+The current target is roughly 900–1,300 words per section across eight core chapters, introduction, conclusion and two bonuses. Actual word count depends on the selected model and its output limits. A generated manuscript can be downloaded as Markdown or HTML, or printed/saved as PDF through the browser print dialog.
 
 ## API key security
 
 - API keys are encrypted in this browser using AES-GCM with a key derived from your passphrase using PBKDF2.
-- You can save multiple labelled keys for each provider and choose which one is active.
+- Multiple labelled keys can be saved for each provider.
 - The passphrase is not saved. Re-enter it to unlock keys after refreshing.
-- For a generation request, the browser decrypts the selected key(s) and sends them to the same-origin API route over HTTPS. The route forwards requests and does not persist credentials.
+- For a generation or research request, the browser decrypts the selected key and sends it to the same-origin API route over HTTPS. The route does not persist credentials.
 - Never commit keys, put them in source code, or share screenshots that reveal them.
 
 The local vault is a convenience layer, not a substitute for device security. Anyone who can run scripts in the app's origin while the vault is unlocked may be able to misuse a key. Use a unique passphrase and deploy only trusted code over HTTPS.
@@ -52,11 +84,13 @@ Open http://localhost:3000.
 
 ## Current limitations
 
-- Live model discovery is supported for the listed providers, but availability and model capabilities are provider-account dependent.
-- Model discovery does not reveal reliable remaining quota for every provider. Luonix reports rate-limit events rather than inventing quota numbers.
-- No live market research, image generation, cloud project sync, user authentication, multi-user rate limiting, or direct Shopify/Gumroad publishing yet.
-- Add authentication, abuse protection, and server-side rate limiting before exposing a public multi-user deployment.
+- Research can return up to 200 result records, but only the top 45 selected excerpts are passed to the model in one research context. This is not the same as reading 200 complete books or papers.
+- Tavily Search is currently the integrated search provider. Additional search/crawl providers such as Firecrawl or Exa can be added later for independent cross-checking and deeper site crawling.
+- The eBook workflow is resumable in browser local storage, not backed by a durable server job queue. Clearing browser storage or changing devices can remove local projects and checkpoints.
+- No account authentication, cloud project sync, server-side billing/credits, multi-user rate limiting, image generation, or direct Shopify/Gumroad publishing yet.
+- The current PDF export uses the browser print dialog. Markdown and HTML are direct downloads.
+- Add authentication, abuse protection, durable job processing and server-side rate limiting before exposing a public multi-user deployment.
 
 ## Deploy
 
-Deploy as a Node.js Next.js app (for example, Vercel). Each user supplies their own provider credentials through the local vault; no shared provider keys are required as server environment variables.
+Deploy as a Node.js Next.js app (for example, Vercel). Each user supplies their own provider and search credentials through the local vault; no shared provider keys are required as server environment variables.
