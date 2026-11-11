@@ -198,6 +198,7 @@ export default function Home() {
       localStorage.setItem("luonix-projects", JSON.stringify(next));
       setSavedProjects(next);
     };
+    persist(completed.length ? "# " + plan.title + "\n\n*" + plan.subtitle + "*" : "");
     for (let i = 0; i < sections.length; i++) {
       if (completed.some(x => x.title === sections[i].title)) continue;
       setStatus("Writing section " + (i + 1) + " of " + sections.length + " · " + sections[i].title);
@@ -332,7 +333,7 @@ export default function Home() {
           <section className="output-card">
             <div className="section-title"><div><div className="eyebrow">02 / WORKBENCH</div><h2>Build your product</h2></div><span className="live-tag">● LIVE WORKSPACE</span></div>
             <div className="workflow">
-              {([{id:"brief",n:"01",name:"Opportunity brief",desc:"Find the right angle"},{id:"outline",n:"02",name:"Product outline",desc:"Design the full structure"},{id:"map",n:"03",name:"Transformation map",desc:"Define the before and after"},{id:"product",n:"04",name:"Create product",desc:"Generate the actual content"},{id:"brand",n:"05",name:"Brand kit",desc:"Set the visual direction"},{id:"sales",n:"06",name:"Sales page",desc:"Prepare the offer"}] as const).map(item => <button key={item.id} className={"workflow-item " + (stage === item.id ? "selected" : "")} onClick={() => generate(item.id)} disabled={busy || !idea.trim() || !ready || (selected.requiresApiKey && !passphrase) || !(taskModels[provider + ":" + item.id] || model).trim()}><span className="workflow-num">{item.n}</span><span className="workflow-copy"><b>{item.name}</b><small>{item.desc}</small></span><span className="arrow">↗</span></button>)}
+              {([{id:"brief",n:"01",name:"Opportunity brief",desc:"Find the right angle"},{id:"outline",n:"02",name:"Product outline",desc:"Design the full structure"},{id:"map",n:"03",name:"Transformation map",desc:"Define the before and after"},{id:"product",n:"04",name:"Create product",desc:"Generate the actual content"},{id:"brand",n:"05",name:"Brand kit",desc:"Set the visual direction"},{id:"sales",n:"06",name:"Sales page",desc:"Prepare the offer"}] as const).map(item => <button key={item.id} className={"workflow-item " + (stage === item.id ? "selected" : "")} onClick={() => generate(item.id)} disabled={busy || !idea.trim() || !ready || (selected.requiresApiKey && !passphrase) || (item.id === "product" && !research) || !(taskModels[provider + ":" + item.id] || model).trim()}><span className="workflow-num">{item.n}</span><span className="workflow-copy"><b>{item.name}</b><small>{item.desc}</small></span><span className="arrow">↗</span></button>)}
             </div>
             <div className="status-line">{busy ? <><span className="spinner"/> {status}</> : <><span className="status-dot"/> {status}</>}</div>
             {error && <div className="error">{error}</div>}
