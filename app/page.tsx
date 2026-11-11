@@ -105,6 +105,14 @@ export default function Home() {
     setTone(project.tone); setStage(project.stage); setOutput(project.output); setTab("preview");
     setStatus("Opened saved product · " + new Date(project.updatedAt).toLocaleString());
   }
+  function printProduct() {
+    if (!output) return;
+    const rendered = DOMPurify.sanitize(marked.parse(output, { async: false }) as string);
+    const win = window.open("", "_blank");
+    if (!win) { setError("Allow pop-ups to print or save this product as PDF."); return; }
+    win.document.write("<!doctype html><html><head><title>Luonix Product</title><style>body{max-width:850px;margin:48px auto;padding:0 28px;font:16px/1.7 system-ui;color:#202522}h1,h2,h3{line-height:1.25}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:8px}blockquote{border-left:3px solid #4c9b75;padding-left:14px;color:#555}@media print{body{margin:0 auto}}</style></head><body>" + rendered + "</body></html>");
+    win.document.close(); win.focus(); win.print();
+  }
   function download(ext: "md" | "html") {
     if (!output) return;
     const rendered = DOMPurify.sanitize(marked.parse(output, { async: false }) as string);
@@ -159,7 +167,7 @@ export default function Home() {
             </div>
             <div className="status-line">{busy ? <><span className="spinner"/> {status}</> : <><span className="status-dot"/> {status}</>}</div>
             {error && <div className="error">{error}</div>}
-            <div className="result-head"><div><div className="eyebrow">03 / PRODUCT OUTPUT</div><h3>{output ? "Your generated work" : "Your canvas is waiting"}</h3></div>{output && <div className="download-actions"><button className="outline-btn" onClick={() => download("md")}>↓ Markdown</button><button className="outline-btn" onClick={() => download("html")}>↓ HTML</button></div>}</div>
+            <div className="result-head"><div><div className="eyebrow">03 / PRODUCT OUTPUT</div><h3>{output ? "Your generated work" : "Your canvas is waiting"}</h3></div>{output && <div className="download-actions"><button className="outline-btn" onClick={() => download("md")}>↓ Markdown</button><button className="outline-btn" onClick={() => download("html")}>↓ HTML</button><button className="outline-btn" onClick={printProduct}>↗ PDF / Print</button></div>}</div>
             {output ? <><div className="tabs"><button className={tab === "preview" ? "on" : ""} onClick={() => setTab("preview")}>Preview</button><button className={tab === "source" ? "on" : ""} onClick={() => setTab("source")}>Source</button></div>{tab === "preview" ? <article className="preview markdown-preview" dangerouslySetInnerHTML={{ __html: renderedPreview }} /> : <textarea className="source-editor" value={output} onChange={e => setOutput(e.target.value)}/>}</> :
               <div className="empty-canvas"><div className="canvas-symbol">Ø</div><b>A product starts with an idea.</b><p>Your brief, outline, full product and sales page will appear here.</p></div>}
           </section>
