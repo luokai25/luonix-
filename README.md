@@ -21,13 +21,13 @@ The app currently supports bring-your-own-key connections for:
 - Groq
 - OpenRouter
 
-Model discovery is requested live from each provider's model endpoint. Model IDs are not treated as permanent constants: choose a discovered model or enter an exact model ID manually.
+Model discovery is requested live from each provider's model endpoint. Model IDs are not treated as permanent constants: choose a discovered model or enter an exact model ID manually. The default provider order prioritizes Groq, OpenRouter, and Google AI Studio. The [awesome-free-llm-apis catalogue](https://github.com/mnfst/awesome-free-llm-apis) can help discover more providers, but the catalogue itself is not an API endpoint.
 
 ### Intelligent fallback
 
 The selected provider/model is tried first. If the provider reports a rate limit, temporary availability error, timeout, or server error, Luonix may try the other providers for which you have saved keys and can discover an available model. Authentication and other non-retryable errors stop the fallback chain and are shown with provider diagnostics.
 
-Luonix does not rotate multiple keys from the same provider to bypass quotas. Provider limits are determined by the provider, account, model, and plan; adding more keys does not automatically multiply an account's allowance. Rate-limit responses are surfaced in the generation status and error details.
+Luonix does not rotate multiple keys from the same provider to bypass quotas. Provider limits are determined by the provider, account, model, and plan; adding more keys does not automatically multiply an account's allowance. Free tiers, eligible models, commercial-use permissions, and data-use policies can change; check the provider's current terms before using customer or confidential material. Rate-limit responses are surfaced in the generation status and error details.
 
 ## API key security
 
