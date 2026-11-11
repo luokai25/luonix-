@@ -7,7 +7,7 @@ import { marked } from "marked";
 import DOMPurify from "dompurify";
 
 type ResearchBundle = { stats: { queriesRun: number; successfulQueries: number; rawResults: number; uniqueSources: number; sourcesIncludedInAnalysis: number; domains: number; estimatedCredits: number }; sources: { id: string; title: string; url: string; domain: string; snippet: string; publishedDate: string | null; relevance: number }[]; researchContext: string; queries: string[]; warnings: string[] };
-type SavedProject = { id: string; idea: string; kind: string; audience: string; problem: string; references: string; tone: string; stage: string; output: string; research?: ResearchBundle | null; updatedAt: number };
+type SavedProject = { id: string; idea: string; kind: string; audience: string; problem: string; references: string; tone: string; stage: string; output: string; research?: ResearchBundle | null; productPlan?: { idea: string; title: string; subtitle: string; promise: string; sections: { title: string; purpose: string }[] }; productSections?: { title: string; content: string }[]; updatedAt: number };
 const providers = PROVIDERS;
 const kinds = ["eBook", "Notion template", "PDF guide", "Online course", "AI tool", "Automation", "Prompt collection", "Other"];
 const tones = ["Warm and direct", "Calm expert", "Playful", "Premium and editorial", "Minimal and practical", "Bold and persuasive"];
@@ -45,6 +45,8 @@ export default function Home() {
   const [searchKeyRecords, setSearchKeyRecords] = useState<{ id: string; label: string }[]>([]);
   const [selectedSearchKey, setSelectedSearchKey] = useState("");
   const [searchKeyInput, setSearchKeyInput] = useState("");
+  const [productPlan, setProductPlan] = useState<{ idea: string; title: string; subtitle: string; promise: string; sections: { title: string; purpose: string }[] } | null>(null);
+  const [productSections, setProductSections] = useState<{ title: string; content: string }[]>([]);
 
   useEffect(() => {
     try { setSavedProjects(JSON.parse(localStorage.getItem("luonix-projects") || "[]")); } catch { setSavedProjects([]); }
@@ -197,7 +199,7 @@ export default function Home() {
   }
   function openProject(project: SavedProject) {
     setIdea(project.idea); setKind(project.kind); setAudience(project.audience); setProblem(project.problem);
-    setTone(project.tone); setReferences(project.references || ""); setStage(project.stage); setOutput(project.output); setResearch(project.research || null); setTab("preview");
+    setTone(project.tone); setReferences(project.references || ""); setStage(project.stage); setOutput(project.output); setResearch(project.research || null); setProductPlan(project.productPlan || null); setProductSections(project.productSections || []); setTab("preview");
     setStatus("Opened saved product · " + new Date(project.updatedAt).toLocaleString());
   }
   function printProduct() {
