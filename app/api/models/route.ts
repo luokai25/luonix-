@@ -14,10 +14,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Choose a supported provider and supply its key if required." }, { status: 400 });
     }
     const headers: Record<string, string> = { Accept: "application/json" };
-    if (apiKey) headers.Authorization = "Bearer " + apiKey;
+    let token = apiKey || "";
+    let baseUrl = definition.baseUrl;
+    let modelsPath = definition.modelsPath;
+    if (provider === "cloudflare") {
+      const split = (apiKey || "").split("|");
+      if (split.length < 2 || !split[0] || !split.slice(1).join("|")) return NextResponse.json({ error: "Cloudflare credentials must be ACCOUNT_ID|API_TOKEN." }, { status: 400 });
+      baseUrl += "/" + encodeURIComponent(split[0]);
+      token = split.slice(1).join("|");
+      modelsPath = "/ai/v1/models";
+    }
+    if (token) headers.Authorization = "Bearer " + token;
     if (provider === "gemini") headers["x-goog-api-key"] = apiKey || "";
     if (provider === "anthropic") { headers["x-api-key"] = apiKey || ""; headers["anthropic-version"] = "2023-06-01"; }
-    const response = await fetch(definition.baseUrl + definition.modelsPath, { headers, cache: "no-store", signal: AbortSignal.timeout(20000) });
+    const response = await fetch(baseUrl + modelsPath, { headers, cache: "no-store", signal: AbortSignal.timeout(20000) });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) return NextResponse.json({ error: data?.error?.message || data?.message || "Model discovery failed.", status: response.status }, { status: response.status });
     const raw = Array.isArray(data.data) ? data.data : Array.isArray(data.models) ? data.models : [];
