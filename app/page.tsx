@@ -6,7 +6,8 @@ import { PROVIDERS, type Provider } from "@/lib/providers";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 
-type SavedProject = { id: string; idea: string; kind: string; audience: string; problem: string; references: string; tone: string; stage: string; output: string; updatedAt: number };
+type ResearchBundle = { stats: { queriesRun: number; successfulQueries: number; rawResults: number; uniqueSources: number; sourcesIncludedInAnalysis: number; domains: number; estimatedCredits: number }; sources: { id: string; title: string; url: string; domain: string; snippet: string; publishedDate: string | null; relevance: number }[]; researchContext: string; queries: string[]; warnings: string[] };
+type SavedProject = { id: string; idea: string; kind: string; audience: string; problem: string; references: string; tone: string; stage: string; output: string; research?: ResearchBundle | null; updatedAt: number };
 const providers = PROVIDERS;
 const kinds = ["eBook", "Notion template", "PDF guide", "Online course", "AI tool", "Automation", "Prompt collection", "Other"];
 const tones = ["Warm and direct", "Calm expert", "Playful", "Premium and editorial", "Minimal and practical", "Bold and persuasive"];
@@ -40,6 +41,10 @@ export default function Home() {
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"preview" | "source">("preview");
   const [savedProjects, setSavedProjects] = useState<SavedProject[]>([]);
+  const [research, setResearch] = useState<ResearchBundle | null>(null);
+  const [searchKeyRecords, setSearchKeyRecords] = useState<{ id: string; label: string }[]>([]);
+  const [selectedSearchKey, setSelectedSearchKey] = useState("");
+  const [searchKeyInput, setSearchKeyInput] = useState("");
 
   useEffect(() => {
     try { setSavedProjects(JSON.parse(localStorage.getItem("luonix-projects") || "[]")); } catch { setSavedProjects([]); }
@@ -55,6 +60,10 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    listSecrets("tavily").then(items => { setSearchKeyRecords(items); setSelectedSearchKey(items[0]?.id || ""); }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (!output) { setRenderedPreview(""); return; }
     setRenderedPreview(DOMPurify.sanitize(marked.parse(output, { async: false }) as string));
   }, [output]);
@@ -67,6 +76,27 @@ export default function Home() {
     setTaskModel(taskModels[id + ":" + taskProfile] || "");
     setModel("");
     setModels([]);
+  }
+  async function saveSearchKey() {
+    setError("");
+    try {
+      const id = await saveSecret("tavily", searchKeyInput.trim(), passphrase, "Tavily Search");
+      const items = await listSecrets("tavily");
+      setSearchKeyRecords(items); setSelectedSearchKey(id); setSearchKeyInput("");
+      setStatus("Tavily search key encrypted and saved on this device.");
+    } catch (e) { setError(e instanceof Error ? e.message : "Could not save search key."); }
+  }
+  async function researchOpportunity() {
+    setBusy(true); setError(""); setStatus("Searching the market across ten research angles...");
+    try {
+      const apiKey = await readSecret("tavily", passphrase, selectedSearchKey);
+      const response = await fetch("/api/research", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ idea, audience, problem, apiKey }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Market research failed.");
+      setResearch(data as ResearchBundle);
+      setStatus("Research complete · " + data.stats.uniqueSources + " unique sources · " + data.stats.domains + " domains · " + data.stats.sourcesIncludedInAnalysis + " source texts analysed.");
+    } catch (e) { setError(e instanceof Error ? e.message : "Market research failed."); setStatus("Research stopped."); }
+    finally { setBusy(false); }
   }
   async function saveKey() {
     setError("");
