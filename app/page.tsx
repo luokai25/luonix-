@@ -2,12 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { deleteSecret, hasSecret, readSecret, saveSecret } from "@/lib/vault";
+import { marked } from "marked";
+import DOMPurify from "dompurify";
 
 type Provider = "openai" | "anthropic" | "gemini";
 const providers: { id: Provider; name: string; model: string; hint: string }[] = [
-  { id: "openai", name: "OpenAI", model: "gpt-4.1-mini", hint: "gpt-4.1-mini" },
-  { id: "anthropic", name: "Anthropic", model: "claude-3-7-sonnet-latest", hint: "claude-3-7-sonnet-latest" },
-  { id: "gemini", name: "Google Gemini", model: "gemini-2.0-flash", hint: "gemini-2.0-flash" }
+  { id: "openai", name: "OpenAI", model: "gpt-5.5", hint: "gpt-5.5" },
+  { id: "anthropic", name: "Anthropic", model: "claude-sonnet-5-5", hint: "claude-sonnet-5-5" },
+  { id: "gemini", name: "Google Gemini", model: "gemini-3.8-flash", hint: "gemini-3.8-flash" }
 ];
 const kinds = ["eBook", "Notion template", "PDF guide", "Online course", "AI tool", "Automation", "Prompt collection", "Other"];
 const tones = ["Warm and direct", "Calm expert", "Playful", "Premium and editorial", "Minimal and practical", "Bold and persuasive"];
@@ -85,7 +87,8 @@ export default function Home() {
   }
   function download(ext: "md" | "html") {
     if (!output) return;
-    const html = "<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width'><title>Luonix Product</title><style>body{max-width:850px;margin:50px auto;padding:0 24px;font:17px/1.7 system-ui;color:#222}h1,h2,h3{line-height:1.25}pre{white-space:pre-wrap}</style></head><body><pre style='white-space:pre-wrap;font:inherit'>" + output.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]!)) + "</pre></body></html>";
+    const rendered = DOMPurify.sanitize(marked.parse(output, { async: false }) as string);
+    const html = "<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width'><title>Luonix Product</title><style>body{max-width:850px;margin:50px auto;padding:0 24px;font:17px/1.7 system-ui;color:#222}h1,h2,h3{line-height:1.25}blockquote{border-left:3px solid #62a887;padding-left:16px;color:#555}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:8px}</style></head><body>" + rendered + "</body></html>";
     const blob = new Blob([ext === "md" ? output : html], { type: ext === "md" ? "text/markdown" : "text/html" });
     const url = URL.createObjectURL(blob); const a = document.createElement("a");
     a.href = url; a.download = "luonix-product." + ext; a.click(); URL.revokeObjectURL(url);
@@ -137,7 +140,7 @@ export default function Home() {
             <div className="status-line">{busy ? <><span className="spinner"/> {status}</> : <><span className="status-dot"/> {status}</>}</div>
             {error && <div className="error">{error}</div>}
             <div className="result-head"><div><div className="eyebrow">03 / PRODUCT OUTPUT</div><h3>{output ? "Your generated work" : "Your canvas is waiting"}</h3></div>{output && <div className="download-actions"><button className="outline-btn" onClick={() => download("md")}>↓ Markdown</button><button className="outline-btn" onClick={() => download("html")}>↓ HTML</button></div>}</div>
-            {output ? <><div className="tabs"><button className={tab === "preview" ? "on" : ""} onClick={() => setTab("preview")}>Preview</button><button className={tab === "source" ? "on" : ""} onClick={() => setTab("source")}>Source</button></div>{tab === "preview" ? <article className="preview"><pre>{output}</pre></article> : <textarea className="source-editor" value={output} onChange={e => setOutput(e.target.value)}/>}</> :
+            {output ? <><div className="tabs"><button className={tab === "preview" ? "on" : ""} onClick={() => setTab("preview")}>Preview</button><button className={tab === "source" ? "on" : ""} onClick={() => setTab("source")}>Source</button></div>{tab === "preview" ? <article className="preview markdown-preview" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marked.parse(output, { async: false }) as string) }} /> : <textarea className="source-editor" value={output} onChange={e => setOutput(e.target.value)}/>}</> :
               <div className="empty-canvas"><div className="canvas-symbol">Ø</div><b>A product starts with an idea.</b><p>Your brief, outline, full product and sales page will appear here.</p></div>}
           </section>
         </div>
