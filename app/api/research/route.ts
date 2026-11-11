@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
       const raw = String(source.raw_content || source.content || "").replace(/\s+/g, " ").slice(0, 2200);
       return `[S${index + 1}] ${source.title || "Untitled"} | ${source.url}\nSearch query: ${item.query}\nEvidence: ${raw}`;
     }).join("\n\n---\n\n");
-    const successfulQueries = settled.filter(x => x.results.length).length;
+    const successfulQueries = settled.filter(x => !x.error).length;
     return NextResponse.json({
       idea,
       queries,
