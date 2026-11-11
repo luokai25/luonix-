@@ -119,7 +119,7 @@ export default function Home() {
         const response = await fetch("/api/models", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider: other.id, apiKey }) });
         const data = await response.json();
         const fallbackModel = data.models?.[0]?.id;
-        if (response.ok && fallbackModel) candidates.push({ provider: other.id, apiKey, model: fallbackModel });
+        if (response.ok && fallbackModel && candidates.length < 8) candidates.push({ provider: other.id, apiKey, model: fallbackModel });
       } catch { /* An unavailable fallback is skipped; the primary request remains unaffected. */ }
     }
     return candidates;
