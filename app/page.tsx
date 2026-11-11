@@ -12,7 +12,7 @@ const kinds = ["eBook", "Notion template", "PDF guide", "Online course", "AI too
 const tones = ["Warm and direct", "Calm expert", "Playful", "Premium and editorial", "Minimal and practical", "Bold and persuasive"];
 
 export default function Home() {
-  const [provider, setProvider] = useState<Provider>("openai");
+  const [provider, setProvider] = useState<Provider>("groq");
   const [model, setModel] = useState("");
   const [models, setModels] = useState<{ id: string; name: string }[]>([]);
   const [modelsLoading, setModelsLoading] = useState(false);
@@ -58,6 +58,8 @@ export default function Home() {
   const selected = useMemo(() => providers.find(p => p.id === provider)!, [provider]);
   function changeProvider(id: Provider) {
     setProvider(id);
+    setKeyInput("");
+    setKeyLabel("Primary");
     setModel("");
     setModels([]);
   }
