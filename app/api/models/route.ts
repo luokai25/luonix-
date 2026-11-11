@@ -5,6 +5,9 @@ export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
+    const origin = req.headers.get("origin");
+    const host = req.headers.get("host");
+    if (origin && host && new URL(origin).host !== host) return NextResponse.json({ error: "Cross-origin requests are not allowed." }, { status: 403 });
     const { provider, apiKey } = await req.json() as { provider: Provider; apiKey: string };
     if (!apiKey || apiKey.length < 12 || apiKey.length > 500 || !(provider in PROVIDER_ENDPOINTS)) {
       return NextResponse.json({ error: "Choose a supported provider and enter a valid API key." }, { status: 400 });
@@ -12,7 +15,7 @@ export async function POST(req: NextRequest) {
     const endpoint = PROVIDER_ENDPOINTS[provider].models;
     const headers: Record<string, string> = { Accept: "application/json" };
     let url = endpoint;
-    if (provider === "gemini") url += "?key=" + encodeURIComponent(apiKey);
+    if (provider === "gemini") headers["x-goog-api-key"] = apiKey;
     else if (provider === "anthropic") { headers["x-api-key"] = apiKey; headers["anthropic-version"] = "2023-06-01"; }
     else headers.Authorization = "Bearer " + apiKey;
     const response = await fetch(url, { headers, cache: "no-store", signal: AbortSignal.timeout(15000) });
