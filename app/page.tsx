@@ -143,19 +143,19 @@ export default function Home() {
     finally { setModelsLoading(false); }
   }
   async function buildCandidates(primaryKey: string | undefined, primaryModel: string) {
-    const candidates: { provider: Provider; apiKey?: string; model: string }[] = [{ provider, apiKey: primaryKey, model: primaryModel }];
-    for (const other of providers) {
-      if (other.id === provider || (other.requiresApiKey && !(keyRecords[other.id] || []).length)) continue;
+    const primary = { provider, apiKey: primaryKey, model: primaryModel };
+    const fallbackProviders = providers.filter(other => other.id !== provider && (!other.requiresApiKey || (keyRecords[other.id] || []).length > 0)).slice(0, 12);
+    const discovered = await Promise.all(fallbackProviders.map(async other => {
       try {
         const records = keyRecords[other.id] || [];
         const apiKey = other.requiresApiKey ? await readSecret(other.id, passphrase, selectedKeys[other.id] || records[0]?.id) : undefined;
         const response = await fetch("/api/models", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider: other.id, apiKey }) });
         const data = await response.json();
         const fallbackModel = data.models?.[0]?.id;
-        if (response.ok && fallbackModel && candidates.length < 8) candidates.push({ provider: other.id, apiKey, model: fallbackModel });
-      } catch { /* An unavailable fallback is skipped; the primary request remains unaffected. */ }
-    }
-    return candidates;
+        return response.ok && fallbackModel ? { provider: other.id, apiKey, model: fallbackModel } : null;
+      } catch { return null; }
+    }));
+    return [primary, ...discovered.filter((x): x is { provider: Provider; apiKey?: string; model: string } => Boolean(x)).slice(0, 7)];
   }
   async function callModel(prompt: string, candidates: { provider: Provider; apiKey?: string; model: string }[]) {
     const response = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ candidates, prompt }) });
