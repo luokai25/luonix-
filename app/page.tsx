@@ -6,7 +6,7 @@ import { marked } from "marked";
 import DOMPurify from "dompurify";
 
 type Provider = "openai" | "anthropic" | "gemini";
-type SavedProject = { id: string; idea: string; kind: string; audience: string; problem: string; tone: string; stage: string; output: string; updatedAt: number };
+type SavedProject = { id: string; idea: string; kind: string; audience: string; problem: string; references: string; tone: string; stage: string; output: string; updatedAt: number };
 const providers: { id: Provider; name: string; model: string; hint: string }[] = [
   { id: "openai", name: "OpenAI", model: "gpt-5.5", hint: "gpt-5.5" },
   { id: "anthropic", name: "Anthropic", model: "claude-sonnet-5-5", hint: "claude-sonnet-5-5" },
@@ -26,6 +26,7 @@ export default function Home() {
   const [kind, setKind] = useState("eBook");
   const [audience, setAudience] = useState("");
   const [problem, setProblem] = useState("");
+  const [references, setReferences] = useState("");
   const [tone, setTone] = useState(tones[0]);
   const [stage, setStage] = useState("brief");
   const [output, setOutput] = useState("");
@@ -67,7 +68,7 @@ export default function Home() {
     setKeys(old => ({ ...old, [provider]: false }));
     setStatus(selected.name + " key removed from this device.");
   }
-  async function generate(task: "brief" | "outline" | "product" | "sales") {
+  async function generate(task: "brief" | "outline" | "map" | "product" | "brand" | "sales") {
     setBusy(true); setError(""); setStatus("Luonix is working...");
     try {
       const apiKey = await readSecret(provider, passphrase);
@@ -75,8 +76,8 @@ export default function Home() {
       const instructions: Record<string, string> = {
         brief: "Create a rigorous product opportunity brief: audience segments, urgent problem, desired transformation, unique angle, competitive differentiation hypotheses, product promise, scope, risks, and a realistic validation plan. End with a clear recommended positioning.",
         outline: "Create a complete production-ready product outline. For an ebook include a compelling title, subtitle, promise, table of contents, chapter objectives, key exercises, examples, and bonus resources. For other formats adapt the structure to the format. Make it coherent and detailed enough to build from.",
-        product: "Create the complete, polished, ready-to-edit digital product, not just an outline. Include title page, introduction, all sections/modules/chapters with substantial useful content, examples, actionable steps, worksheets or templates where appropriate, conclusion, and bonus resources. Avoid padding. For a software/automation product include architecture, setup, workflows, prompts, and implementation details.",
-        sales: "Write a complete conversion-focused product sales page: headline, subheadline, problem, transformation, what's included, feature-to-benefit mapping, who it is and isn't for, FAQs, ethical urgency if justified, and CTA. Do not invent testimonials, guarantees, or scarcity."
+        map: "Build a visceral transformation map for the target customer. Show the before state, emotional friction, desired after state, measurable outcomes, 4-6 practical stages, actions at each stage, and how to tell progress is real. Present the map as a clear Markdown table and explain the logic.\\n",\n        product: "Create the complete, polished, ready-to-edit digital product, not just an outline. Include title page, introduction, all sections/modules/chapters with substantial useful content, examples, actionable steps, worksheets or templates where appropriate, conclusion, and bonus resources. Avoid padding. For a software/automation product include architecture, setup, workflows, prompts, and implementation details.",
+        brand: "Create a complete product brand kit: brand concept, five-color palette with HEX codes and usage, typography pairing using widely available fonts, cover design direction, layout rules, illustration/photo direction, reusable visual components, and accessibility guidance. Keep the visual system coherent and practical.\\n",\n        sales: "Write a complete conversion-focused product sales page: headline, subheadline, problem, transformation, what's included, feature-to-benefit mapping, who it is and isn't for, FAQs, ethical urgency if justified, and CTA. Do not invent testimonials, guarantees, or scarcity."
       };
       const prompt = base + "\n\nTASK: " + instructions[task];
       const response = await fetch("/api/generate", {
@@ -87,7 +88,7 @@ export default function Home() {
       if (!response.ok) throw new Error(data.error || "Generation failed.");
       setOutput(data.output);
       setStage(task);
-      const project: SavedProject = { id: crypto.randomUUID(), idea, kind, audience, problem, tone, stage: task, output: data.output, updatedAt: Date.now() };
+      const project: SavedProject = { id: crypto.randomUUID(), idea, kind, audience, problem, references, tone, stage: task, output: data.output, updatedAt: Date.now() };
       setSavedProjects(old => {
         const next = [project, ...old.filter(x => x.idea !== idea)].slice(0, 30);
         localStorage.setItem("luonix-projects", JSON.stringify(next));
@@ -102,7 +103,7 @@ export default function Home() {
   }
   function openProject(project: SavedProject) {
     setIdea(project.idea); setKind(project.kind); setAudience(project.audience); setProblem(project.problem);
-    setTone(project.tone); setStage(project.stage); setOutput(project.output); setTab("preview");
+    setTone(project.tone); setReferences(project.references || ""); setStage(project.stage); setOutput(project.output); setTab("preview");
     setStatus("Opened saved product · " + new Date(project.updatedAt).toLocaleString());
   }
   function printProduct() {
@@ -155,7 +156,7 @@ export default function Home() {
               <label>Writing style<select value={tone} onChange={e => setTone(e.target.value)}>{tones.map(t => <option key={t}>{t}</option>)}</select></label>
             </div>
             <label>Who is it for?<input value={audience} onChange={e => setAudience(e.target.value)} placeholder="e.g. Freelancers, first-time founders, students..." /></label>
-            <label>What problem should it solve?<input value={problem} onChange={e => setProblem(e.target.value)} placeholder="The specific frustration or outcome..." /></label>
+            <label>What problem should it solve?<input value={problem} onChange={e => setProblem(e.target.value)} placeholder="The specific frustration or outcome..." /></label>\n            <label>Supporting references (optional)<textarea value={references} onChange={e => setReferences(e.target.value)} rows={2} placeholder="Paste notes, examples, research, links, or source material..." /></label>
             <div className="engine-row"><div><span className={ready ? "pulse" : "pulse muted"}/><span>{ready ? selected.name + " connected" : "API key required"}</span></div><button className="text-btn" onClick={() => setSettings(true)}>Manage keys ↗</button></div>
             <button className="primary generate" onClick={() => generate("brief")} disabled={busy || !idea.trim() || !ready || !passphrase}>Generate product brief <span>↗</span></button>
             {!ready && <p className="hint">Add an API key in Settings to activate generation.</p>}
@@ -163,7 +164,7 @@ export default function Home() {
           <section className="output-card">
             <div className="section-title"><div><div className="eyebrow">02 / WORKBENCH</div><h2>Build your product</h2></div><span className="live-tag">● LIVE WORKSPACE</span></div>
             <div className="workflow">
-              {([{id:"brief",n:"01",name:"Opportunity brief",desc:"Find the right angle"},{id:"outline",n:"02",name:"Product outline",desc:"Design the full structure"},{id:"product",n:"03",name:"Create product",desc:"Generate the actual content"},{id:"sales",n:"04",name:"Sales page",desc:"Prepare the offer"}] as const).map(item => <button key={item.id} className={"workflow-item " + (stage === item.id ? "selected" : "")} onClick={() => generate(item.id)} disabled={busy || !idea.trim() || !ready || !passphrase}><span className="workflow-num">{item.n}</span><span className="workflow-copy"><b>{item.name}</b><small>{item.desc}</small></span><span className="arrow">↗</span></button>)}
+              {([{id:"brief",n:"01",name:"Opportunity brief",desc:"Find the right angle"},{id:"outline",n:"02",name:"Product outline",desc:"Design the full structure"},{id:"map",n:"03",name:"Transformation map",desc:"Define the before and after"},{id:"product",n:"04",name:"Create product",desc:"Generate the actual content"},{id:"brand",n:"05",name:"Brand kit",desc:"Set the visual direction"},{id:"sales",n:"06",name:"Sales page",desc:"Prepare the offer"}] as const).map(item => <button key={item.id} className={"workflow-item " + (stage === item.id ? "selected" : "")} onClick={() => generate(item.id)} disabled={busy || !idea.trim() || !ready || !passphrase}><span className="workflow-num">{item.n}</span><span className="workflow-copy"><b>{item.name}</b><small>{item.desc}</small></span><span className="arrow">↗</span></button>)}
             </div>
             <div className="status-line">{busy ? <><span className="spinner"/> {status}</> : <><span className="status-dot"/> {status}</>}</div>
             {error && <div className="error">{error}</div>}
