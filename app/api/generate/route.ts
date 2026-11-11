@@ -11,7 +11,17 @@ async function callCandidate(candidate: Candidate, prompt: string) {
   if (!definition) return { ok: false as const, status: 400, error: "Unknown provider." };
   const { provider, apiKey, model } = candidate;
   const headers: Record<string, string> = { "Content-Type": "application/json", Accept: "application/json" };
-  if (apiKey) headers.Authorization = "Bearer " + apiKey;
+  let token = apiKey || "";
+  let baseUrl = definition.baseUrl;
+  let chatPath = definition.chatPath;
+  if (provider === "cloudflare") {
+    const split = (apiKey || "").split("|");
+    if (split.length < 2 || !split[0] || !split.slice(1).join("|")) return { ok: false as const, status: 400, error: "Cloudflare credentials must be ACCOUNT_ID|API_TOKEN." };
+    baseUrl += "/" + encodeURIComponent(split[0]);
+    token = split.slice(1).join("|");
+    chatPath = "/ai/v1/chat/completions";
+  }
+  if (token) headers.Authorization = "Bearer " + token;
   if (provider === "anthropic") {
     headers["x-api-key"] = apiKey || "";
     headers["anthropic-version"] = "2023-06-01";
@@ -21,7 +31,7 @@ async function callCandidate(candidate: Candidate, prompt: string) {
     headers["HTTP-Referer"] = "https://luonix.app";
     headers["X-Title"] = "Luonix";
   }
-  const url = definition.baseUrl + definition.chatPath;
+  const url = baseUrl + chatPath;
   let payload: Record<string, unknown>;
   if (provider === "openai") {
     payload = { model, instructions: SYSTEM_INSTRUCTIONS, input: prompt, max_output_tokens: 16000 };
