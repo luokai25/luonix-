@@ -43,7 +43,7 @@ export default function Home() {
 
   useEffect(() => {
     try { setSavedProjects(JSON.parse(localStorage.getItem("luonix-projects") || "[]")); } catch { setSavedProjects([]); }
-    try { setTaskModels(JSON.parse(localStorage.getItem("luonix-task-models") || "{}")); } catch { setTaskModels({}); }
+    try { const savedTaskModels = JSON.parse(localStorage.getItem("luonix-task-models") || "{}"); setTaskModels(savedTaskModels); setTaskModel(savedTaskModels["groq:product"] || ""); } catch { setTaskModels({}); }
     Promise.all(providers.map(async p => [p.id, await listSecrets(p.id)] as const))
       .then(entries => {
         const records = Object.fromEntries(entries.map(([id, items]) => [id, items]));
