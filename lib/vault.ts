@@ -48,7 +48,7 @@ export async function saveSecret(provider: string, secret: string, passphrase: s
   if (passphrase.length < 10) throw new Error("Use a vault passphrase of at least 10 characters.");
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const key = await derive(passphrase, salt.buffer);
+  const key = await derive(passphrase, salt.buffer as ArrayBuffer);
   const cipher = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(secret));
   await put({ id: provider, salt: salt.buffer, iv: iv.buffer, cipher });
 }
