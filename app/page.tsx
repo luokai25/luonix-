@@ -29,6 +29,7 @@ export default function Home() {
   const [tone, setTone] = useState(tones[0]);
   const [stage, setStage] = useState("brief");
   const [output, setOutput] = useState("");
+  const [renderedPreview, setRenderedPreview] = useState("");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("Your studio is ready.");
   const [error, setError] = useState("");
@@ -41,6 +42,11 @@ export default function Home() {
       .then(entries => setKeys(Object.fromEntries(entries)))
       .catch(() => setStatus("Local vault unavailable in this browser."));
   }, []);
+
+  useEffect(() => {
+    if (!output) { setRenderedPreview(""); return; }
+    setRenderedPreview(DOMPurify.sanitize(marked.parse(output, { async: false }) as string));
+  }, [output]);
 
   const selected = useMemo(() => providers.find(p => p.id === provider)!, [provider]);
   function changeProvider(id: Provider) {
@@ -154,7 +160,7 @@ export default function Home() {
             <div className="status-line">{busy ? <><span className="spinner"/> {status}</> : <><span className="status-dot"/> {status}</>}</div>
             {error && <div className="error">{error}</div>}
             <div className="result-head"><div><div className="eyebrow">03 / PRODUCT OUTPUT</div><h3>{output ? "Your generated work" : "Your canvas is waiting"}</h3></div>{output && <div className="download-actions"><button className="outline-btn" onClick={() => download("md")}>↓ Markdown</button><button className="outline-btn" onClick={() => download("html")}>↓ HTML</button></div>}</div>
-            {output ? <><div className="tabs"><button className={tab === "preview" ? "on" : ""} onClick={() => setTab("preview")}>Preview</button><button className={tab === "source" ? "on" : ""} onClick={() => setTab("source")}>Source</button></div>{tab === "preview" ? <article className="preview markdown-preview" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marked.parse(output, { async: false }) as string) }} /> : <textarea className="source-editor" value={output} onChange={e => setOutput(e.target.value)}/>}</> :
+            {output ? <><div className="tabs"><button className={tab === "preview" ? "on" : ""} onClick={() => setTab("preview")}>Preview</button><button className={tab === "source" ? "on" : ""} onClick={() => setTab("source")}>Source</button></div>{tab === "preview" ? <article className="preview markdown-preview" dangerouslySetInnerHTML={{ __html: renderedPreview }} /> : <textarea className="source-editor" value={output} onChange={e => setOutput(e.target.value)}/>}</> :
               <div className="empty-canvas"><div className="canvas-symbol">Ø</div><b>A product starts with an idea.</b><p>Your brief, outline, full product and sales page will appear here.</p></div>}
           </section>
         </div>
