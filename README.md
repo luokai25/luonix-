@@ -21,7 +21,9 @@ The app currently supports bring-your-own-key connections for:
 - Groq
 - OpenRouter
 
-Model discovery is requested live from each provider's model endpoint. Model IDs are not treated as permanent constants: choose a discovered model or enter an exact model ID manually. The default provider order prioritizes Groq, OpenRouter, and Google AI Studio. The [awesome-free-llm-apis catalogue](https://github.com/mnfst/awesome-free-llm-apis) can help discover more providers, but the catalogue itself is not an API endpoint.
+Model discovery is requested live from each provider's model endpoint. Model IDs are not treated as permanent constants: choose a discovered model or enter an exact model ID manually.
+
+Per-stage model overrides can be saved for the opportunity brief, outline, transformation map, full product, brand kit, and sales page. OpenRouter models with zero listed prompt/completion pricing are labelled FREE; provider/account-level free quotas are separate. The default provider order prioritizes Groq, OpenRouter, and Google AI Studio. The [awesome-free-llm-apis catalogue](https://github.com/mnfst/awesome-free-llm-apis) can help discover more providers, but the catalogue itself is not an API endpoint.
 
 ### Intelligent fallback
 
