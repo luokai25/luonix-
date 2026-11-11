@@ -129,7 +129,10 @@ export default function Home() {
         body: JSON.stringify({ candidates: await buildCandidates(apiKey), prompt })
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Generation failed.");
+      if (!response.ok) {
+        const detail = Array.isArray(data.attempts) ? data.attempts.map((x: { provider: string; status: number; error: string }) => x.provider + " (" + (x.status || "network") + "): " + x.error).join(" · ") : "";
+        throw new Error([data.error || "Generation failed.", detail].filter(Boolean).join(" | "));
+      }
       setOutput(data.output);
       setStage(task);
       const project: SavedProject = { id: crypto.randomUUID(), idea, kind, audience, problem, references, tone, stage: task, output: data.output, updatedAt: Date.now() };
@@ -139,7 +142,7 @@ export default function Home() {
         return next;
       });
       setTab("preview");
-      setStatus("Generation complete · " + selected.name + " · " + model);
+      setStatus("Generation complete · " + data.provider + " · " + data.model + (data.fallbackUsed ? " · fallback used after a provider limit or outage" : ""));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
       setStatus("Generation stopped.");
