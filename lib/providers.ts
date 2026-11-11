@@ -1,11 +1,11 @@
 export type Provider = "openai" | "anthropic" | "gemini" | "groq" | "openrouter";
 
 export const PROVIDERS: { id: Provider; name: string; defaultModel: string }[] = [
-  { id: "openai", name: "OpenAI", defaultModel: "" },
-  { id: "anthropic", name: "Anthropic", defaultModel: "" },
-  { id: "gemini", name: "Google AI Studio", defaultModel: "" },
   { id: "groq", name: "Groq", defaultModel: "" },
   { id: "openrouter", name: "OpenRouter", defaultModel: "" },
+  { id: "gemini", name: "Google AI Studio", defaultModel: "" },
+  { id: "openai", name: "OpenAI", defaultModel: "" },
+  { id: "anthropic", name: "Anthropic", defaultModel: "" },
 ];
 
 export const PROVIDER_ENDPOINTS: Record<Provider, { models: string; chat: string; format: "openai" | "anthropic" | "gemini" }> = {
@@ -19,5 +19,5 @@ export const PROVIDER_ENDPOINTS: Record<Provider, { models: string; chat: string
 export const SYSTEM_INSTRUCTIONS = "You are Luonix, a meticulous digital-product creation engine. Produce original, useful, commercially realistic work. Never claim research, facts, citations, files, or actions that you did not actually perform. Use clear headings and concrete deliverables.";
 
 export function retryable(status: number) {
-  return status === 408 || status === 409 || status === 425 || status === 429 || status >= 500;
+  return status === 400 || status === 408 || status === 409 || status === 425 || status === 429 || status === 404 || status === 422 || status >= 500;
 }
