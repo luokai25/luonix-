@@ -1,39 +1,60 @@
 # Luonix Ø
 
-Luonix is a browser-based AI Product Studio for turning ideas into structured digital products.
+Luonix is a browser-based AI Product Studio for turning ideas into structured, editable digital products.
 
-## Included in this foundation
-- Guided product brief, outline, transformation map, full-product generation, brand kit, and sales-page workflow.
-- Bring-your-own-key routing for OpenAI, Anthropic, and Google Gemini.
-- Device-local AES-GCM encrypted API-key vault using Web Crypto and a passphrase-derived key.
-- Editable Markdown source, sanitized rich preview, Markdown/HTML downloads, and browser print-to-PDF.
-- Local project library stored in the browser (up to 30 recent generated projects).
-- GitHub Actions validation and production build.
+## Product workflow
 
-## Stack
-- Next.js App Router + TypeScript
-- OpenAI Responses API
-- Anthropic Messages API
-- Google Gemini generateContent API
-- IndexedDB + Web Crypto for encrypted provider keys
-- localStorage for non-secret project drafts
+- Opportunity brief and validation plan
+- Product outline and transformation map
+- Full digital-product generation
+- Brand kit and sales page
+- Editable Markdown source, sanitized preview, Markdown/HTML export, and browser print-to-PDF
+- Local project library (up to 30 recent projects)
+
+## AI providers
+
+The app currently supports bring-your-own-key connections for:
+
+- OpenAI
+- Anthropic
+- Google AI Studio (Gemini)
+- Groq
+- OpenRouter
+
+Model discovery is requested live from each provider's model endpoint. Model IDs are not treated as permanent constants: choose a discovered model or enter an exact model ID manually.
+
+### Intelligent fallback
+
+The selected provider/model is tried first. If the provider reports a rate limit, temporary availability error, timeout, or server error, Luonix may try the other providers for which you have saved keys and can discover an available model. Authentication and other non-retryable errors stop the fallback chain and are shown with provider diagnostics.
+
+Luonix does not rotate multiple keys from the same provider to bypass quotas. Provider limits are determined by the provider, account, model, and plan; adding more keys does not automatically multiply an account's allowance. Rate-limit responses are surfaced in the generation status and error details.
+
+## API key security
+
+- API keys are encrypted in this browser using AES-GCM with a key derived from your passphrase using PBKDF2.
+- You can save multiple labelled keys for each provider and choose which one is active.
+- The passphrase is not saved. Re-enter it to unlock keys after refreshing.
+- For a generation request, the browser decrypts the selected key(s) and sends them to the same-origin API route over HTTPS. The route forwards requests and does not persist credentials.
+- Never commit keys, put them in source code, or share screenshots that reveal them.
+
+The local vault is a convenience layer, not a substitute for device security. Anyone who can run scripts in the app's origin while the vault is unlocked may be able to misuse a key. Use a unique passphrase and deploy only trusted code over HTTPS.
 
 ## Run locally
+
 ```bash
 npm install
 npm run dev
 ```
+
 Open http://localhost:3000.
 
-## Configure provider keys
-Open **Settings**, choose a provider, enter a vault passphrase of at least 10 characters, paste the API key, and choose **Encrypt & save**. The secret is encrypted in this browser. The passphrase is not saved. Re-enter it after refreshing the app to unlock the saved key.
+## Current limitations
 
-For each generation, the browser decrypts the selected key and sends it to the same-origin API route over HTTPS. The route forwards the request to the selected provider and does not persist the key. Never commit API keys, put them in source code, or share screenshots that reveal them.
-
-The local vault is a convenience layer, not a substitute for device security. Anyone who can run scripts in the app's origin while the vault is unlocked may be able to misuse a key. Use a unique passphrase and deploy only trusted code over HTTPS.
-
-## Current scope and next integrations
-The product brief creates structured opportunity hypotheses and a validation plan; it does not perform independent live web research yet. Image generation, cloud project sync, user authentication, multi-user rate limiting, and direct publishing to Shopify/Gumroad are not included in this foundation. Add authentication and server-side rate limiting before exposing a public multi-user deployment.
+- Live model discovery is supported for the listed providers, but availability and model capabilities are provider-account dependent.
+- Model discovery does not reveal reliable remaining quota for every provider. Luonix reports rate-limit events rather than inventing quota numbers.
+- No live market research, image generation, cloud project sync, user authentication, multi-user rate limiting, or direct Shopify/Gumroad publishing yet.
+- Add authentication, abuse protection, and server-side rate limiting before exposing a public multi-user deployment.
 
 ## Deploy
-Deploy as a Node.js Next.js app (for example, Vercel). Provider secrets are supplied by each user through the local vault, so no shared provider keys are required as server environment variables.
+
+Deploy as a Node.js Next.js app (for example, Vercel). Each user supplies their own provider credentials through the local vault; no shared provider keys are required as server environment variables.
