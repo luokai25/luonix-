@@ -37,5 +37,5 @@ export const PROVIDER_BY_ID = Object.fromEntries(PROVIDERS.map(p => [p.id, p])) 
 export const SYSTEM_INSTRUCTIONS = "You are Luonix, a meticulous digital-product creation engine. Produce original, useful, commercially realistic work. Never claim research, facts, citations, files, or actions that you did not actually perform. Use clear headings and concrete deliverables.";
 
 export function retryable(status: number) {
-  return status === 408 || status === 409 || status === 425 || status === 429 || status >= 500;
+  return status === 404 || status === 408 || status === 409 || status === 422 || status === 425 || status === 429 || status >= 500;
 }
