@@ -23,9 +23,11 @@ export async function POST(req: NextRequest) {
     if (!response.ok) return NextResponse.json({ error: data?.error?.message || "Model discovery failed.", status: response.status }, { status: response.status });
     const raw = Array.isArray(data.data) ? data.data : Array.isArray(data.models) ? data.models : [];
     const models = raw.map((item: any) => {
-      const id = String(item.id || item.name || "").replace(/^models\//, "");
-      return { id, name: String(item.displayName || item.name || item.id || id), contextLength: Number(item.context_length || item.inputTokenLimit || 0) || null };
-    }).filter((item: { id: string }) => item.id && (!item.id.includes("embedding") && !item.id.includes("moderation")));
+      const id = String(item.id || item.name || "").replace(/^models\\//, "");
+      const pricing = item.pricing || {};
+      const isFree = provider === "openrouter" && (id.endsWith(":free") || (Number(pricing.prompt) === 0 && Number(pricing.completion) === 0));
+      return { id, name: String(item.displayName || item.name || item.id || id), contextLength: Number(item.context_length || item.inputTokenLimit || 0) || null, isFree };
+    }).filter((item: { id: string }) => item.id && !/(embedding|moderation|whisper|audio|transcription|guard)/i.test(item.id));
     return NextResponse.json({ provider, models, checkedAt: new Date().toISOString() });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Model discovery failed." }, { status: 500 });
