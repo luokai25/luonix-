@@ -142,7 +142,8 @@ export default function Home() {
         return next;
       });
       setTab("preview");
-      setStatus("Generation complete · " + data.provider + " · " + data.model + (data.fallbackUsed ? " · fallback used after a provider limit or outage" : ""));
+      const fallbackNote = data.fallbackUsed ? " · fallback used after " + (data.attempts || []).map((x: { provider: string; status: number }) => x.provider + " " + (x.status || "network error")).join(", ") : "";
+      setStatus("Generation complete · " + data.provider + " · " + data.model + fallbackNote);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
       setStatus("Generation stopped.");
