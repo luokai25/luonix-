@@ -6,6 +6,7 @@ import { marked } from "marked";
 import DOMPurify from "dompurify";
 
 type Provider = "openai" | "anthropic" | "gemini";
+type SavedProject = { id: string; idea: string; kind: string; audience: string; problem: string; tone: string; stage: string; output: string; updatedAt: number };
 const providers: { id: Provider; name: string; model: string; hint: string }[] = [
   { id: "openai", name: "OpenAI", model: "gpt-5.5", hint: "gpt-5.5" },
   { id: "anthropic", name: "Anthropic", model: "claude-sonnet-5-5", hint: "claude-sonnet-5-5" },
@@ -32,8 +33,10 @@ export default function Home() {
   const [status, setStatus] = useState("Your studio is ready.");
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"preview" | "source">("preview");
+  const [savedProjects, setSavedProjects] = useState<SavedProject[]>([]);
 
   useEffect(() => {
+    try { setSavedProjects(JSON.parse(localStorage.getItem("luonix-projects") || "[]")); } catch { setSavedProjects([]); }
     Promise.all(providers.map(async p => [p.id, await hasSecret(p.id)] as const))
       .then(entries => setKeys(Object.fromEntries(entries)))
       .catch(() => setStatus("Local vault unavailable in this browser."));
@@ -78,12 +81,23 @@ export default function Home() {
       if (!response.ok) throw new Error(data.error || "Generation failed.");
       setOutput(data.output);
       setStage(task);
+      const project: SavedProject = { id: crypto.randomUUID(), idea, kind, audience, problem, tone, stage: task, output: data.output, updatedAt: Date.now() };
+      setSavedProjects(old => {
+        const next = [project, ...old.filter(x => x.idea !== idea)].slice(0, 30);
+        localStorage.setItem("luonix-projects", JSON.stringify(next));
+        return next;
+      });
       setTab("preview");
       setStatus("Generation complete · " + selected.name + " · " + model);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
       setStatus("Generation stopped.");
     } finally { setBusy(false); }
+  }
+  function openProject(project: SavedProject) {
+    setIdea(project.idea); setKind(project.kind); setAudience(project.audience); setProblem(project.problem);
+    setTone(project.tone); setStage(project.stage); setOutput(project.output); setTab("preview");
+    setStatus("Opened saved product · " + new Date(project.updatedAt).toLocaleString());
   }
   function download(ext: "md" | "html") {
     if (!output) return;
@@ -98,9 +112,9 @@ export default function Home() {
     <aside className="sidebar">
       <div className="brand"><span className="mark">Ø</span><span>LUONIX</span></div>
       <button className="nav active">✧ <span>Product Studio</span></button>
-      <button className="nav" onClick={() => { setOutput(""); setStage("brief"); setIdea(""); setStatus("New product started."); }}>＋ <span>New product</span></button>
-      <div className="side-label">WORKSPACE</div>
-      <div className="side-note">Your generated products stay in this browser session. Project library and sync are next.</div>
+      <button className="nav" onClick={() => { setOutput(""); setStage("brief"); setIdea(""); setAudience(""); setProblem(""); setStatus("New product started."); }}>＋ <span>New product</span></button>
+      <div className="side-label">YOUR LIBRARY</div>
+      <div className="library-list">{savedProjects.length ? savedProjects.map(project => <button key={project.id} className="library-item" onClick={() => openProject(project)}><b>{project.idea}</b><small>{project.kind} · {new Date(project.updatedAt).toLocaleDateString()}</small></button>) : <div className="side-note">Your saved products will appear here automatically after generation.</div>}</div>
       <div className="side-bottom"><div className="online-dot"/> Local vault {Object.values(keys).filter(Boolean).length} provider(s) configured</div>
     </aside>
     <section className="main">
