@@ -1,23 +1,24 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { deleteSecret, hasSecret, readSecret, saveSecret } from "@/lib/vault";
+import { deleteSecret, listSecrets, readSecret, saveSecret } from "@/lib/vault";
+import { PROVIDERS, type Provider } from "@/lib/providers";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 
-type Provider = "openai" | "anthropic" | "gemini";
 type SavedProject = { id: string; idea: string; kind: string; audience: string; problem: string; references: string; tone: string; stage: string; output: string; updatedAt: number };
-const providers: { id: Provider; name: string; model: string; hint: string }[] = [
-  { id: "openai", name: "OpenAI", model: "gpt-5.5", hint: "gpt-5.5" },
-  { id: "anthropic", name: "Anthropic", model: "claude-sonnet-5-5", hint: "claude-sonnet-5-5" },
-  { id: "gemini", name: "Google Gemini", model: "gemini-3.8-flash", hint: "gemini-3.8-flash" }
-];
+const providers = PROVIDERS;
 const kinds = ["eBook", "Notion template", "PDF guide", "Online course", "AI tool", "Automation", "Prompt collection", "Other"];
 const tones = ["Warm and direct", "Calm expert", "Playful", "Premium and editorial", "Minimal and practical", "Bold and persuasive"];
 
 export default function Home() {
   const [provider, setProvider] = useState<Provider>("openai");
-  const [model, setModel] = useState(providers[0].model);
+  const [model, setModel] = useState("");
+  const [models, setModels] = useState<{ id: string; name: string }[]>([]);
+  const [modelsLoading, setModelsLoading] = useState(false);
+  const [keyRecords, setKeyRecords] = useState<Record<string, { id: string; label: string }[]>>({});
+  const [selectedKeys, setSelectedKeys] = useState<Record<string, string>>({});
+  const [keyLabel, setKeyLabel] = useState("Primary");
   const [passphrase, setPassphrase] = useState("");
   const [keyInput, setKeyInput] = useState("");
   const [keys, setKeys] = useState<Record<string, boolean>>({});
@@ -39,8 +40,13 @@ export default function Home() {
 
   useEffect(() => {
     try { setSavedProjects(JSON.parse(localStorage.getItem("luonix-projects") || "[]")); } catch { setSavedProjects([]); }
-    Promise.all(providers.map(async p => [p.id, await hasSecret(p.id)] as const))
-      .then(entries => setKeys(Object.fromEntries(entries)))
+    Promise.all(providers.map(async p => [p.id, await listSecrets(p.id)] as const))
+      .then(entries => {
+        const records = Object.fromEntries(entries.map(([id, items]) => [id, items]));
+        setKeyRecords(records);
+        setKeys(Object.fromEntries(entries.map(([id, items]) => [id, items.length > 0])));
+        setSelectedKeys(Object.fromEntries(entries.map(([id, items]) => [id, items[0]?.id || ""])));
+      })
       .catch(() => setStatus("Local vault unavailable in this browser."));
   }, []);
 
@@ -52,26 +58,62 @@ export default function Home() {
   const selected = useMemo(() => providers.find(p => p.id === provider)!, [provider]);
   function changeProvider(id: Provider) {
     setProvider(id);
-    setModel(providers.find(p => p.id === id)!.model);
+    setModel("");
+    setModels([]);
   }
   async function saveKey() {
     setError("");
     try {
-      await saveSecret(provider, keyInput.trim(), passphrase);
+      const id = await saveSecret(provider, keyInput.trim(), passphrase, keyLabel);
+      const records = await listSecrets(provider);
+      setKeyRecords(old => ({ ...old, [provider]: records }));
+      setSelectedKeys(old => ({ ...old, [provider]: id }));
       setKeys(old => ({ ...old, [provider]: true }));
       setKeyInput("");
       setStatus(selected.name + " key encrypted and saved on this device.");
     } catch (e) { setError(e instanceof Error ? e.message : "Could not save key."); }
   }
   async function removeKey() {
-    await deleteSecret(provider);
-    setKeys(old => ({ ...old, [provider]: false }));
+    await deleteSecret(provider, selectedKeys[provider]);
+    const records = await listSecrets(provider);
+    setKeyRecords(old => ({ ...old, [provider]: records }));
+    setSelectedKeys(old => ({ ...old, [provider]: records[0]?.id || "" }));
+    setKeys(old => ({ ...old, [provider]: records.length > 0 }));
     setStatus(selected.name + " key removed from this device.");
+  }
+  async function refreshModels() {
+    setModelsLoading(true); setError("");
+    try {
+      const apiKey = await readSecret(provider, passphrase, selectedKeys[provider]);
+      const response = await fetch("/api/models", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider, apiKey }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not discover models.");
+      setModels(data.models || []);
+      if (!model && data.models?.[0]?.id) setModel(data.models[0].id);
+      setStatus("Discovered " + (data.models?.length || 0) + " models from " + selected.name + ".");
+    } catch (e) { setError(e instanceof Error ? e.message : "Model discovery failed."); }
+    finally { setModelsLoading(false); }
+  }
+  async function buildCandidates(primaryKey: string) {
+    const candidates: { provider: Provider; apiKey: string; model: string }[] = [{ provider, apiKey: primaryKey, model }];
+    for (const other of providers) {
+      if (other.id === provider) continue;
+      const records = keyRecords[other.id] || [];
+      if (!records.length) continue;
+      try {
+        const apiKey = await readSecret(other.id, passphrase, selectedKeys[other.id] || records[0].id);
+        const response = await fetch("/api/models", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider: other.id, apiKey }) });
+        const data = await response.json();
+        const fallbackModel = data.models?.[0]?.id;
+        if (response.ok && fallbackModel) candidates.push({ provider: other.id, apiKey, model: fallbackModel });
+      } catch { /* An unavailable fallback is skipped; the primary request remains unaffected. */ }
+    }
+    return candidates;
   }
   async function generate(task: "brief" | "outline" | "map" | "product" | "brand" | "sales") {
     setBusy(true); setError(""); setStatus("Luonix is working...");
     try {
-      const apiKey = await readSecret(provider, passphrase);
+      const apiKey = await readSecret(provider, passphrase, selectedKeys[provider]);
       const base = `PRODUCT IDEA: ${idea}\nPRODUCT FORMAT: ${kind}\nTARGET AUDIENCE: ${audience || "Identify the best-fit audience"}\nPROBLEM TO SOLVE: ${problem || "Identify a specific painful problem"}\nSUPPORTING REFERENCES: ${references || "None supplied"}\nVOICE: ${tone}\n\nCreate original, practical work. Be specific, avoid generic filler, distinguish assumptions from verified facts, and do not invent research or citations.`;
       const instructions: Record<string, string> = {
         brief: "Create a rigorous product opportunity brief: audience segments, urgent problem, desired transformation, unique angle, competitive differentiation hypotheses, product promise, scope, risks, and a realistic validation plan. End with a clear recommended positioning.",
@@ -84,7 +126,7 @@ export default function Home() {
       const prompt = base + "\n\nTASK: " + instructions[task];
       const response = await fetch("/api/generate", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider, model, apiKey, prompt })
+        body: JSON.stringify({ candidates: await buildCandidates(apiKey), prompt })
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Generation failed.");
@@ -140,11 +182,14 @@ export default function Home() {
         <div className="settings-head"><div><div className="eyebrow">PERSONAL API CONNECTIONS</div><h2>Key vault</h2><p>Keys are encrypted in this browser and are not saved by Luonix's server.</p></div><button className="close" onClick={() => setSettings(false)}>×</button></div>
         <div className="settings-grid">
           <label>Provider<select value={provider} onChange={e => changeProvider(e.target.value as Provider)}>{providers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
-          <label>Model<input value={model} onChange={e => setModel(e.target.value)} /></label>
+          <label>Model ID (manual override)<input value={model} onChange={e => setModel(e.target.value)} placeholder="Discover models or enter an exact model ID" /></label>
           <label className="span-two">Vault passphrase<input type="password" autoComplete="current-password" value={passphrase} onChange={e => setPassphrase(e.target.value)} placeholder="At least 10 characters · required to unlock keys" /></label>
-          <label className="span-two">API key<input type="password" autoComplete="off" value={keyInput} onChange={e => setKeyInput(e.target.value)} placeholder={"Paste your " + selected.name + " API key"} /></label>
+          <label>Saved key<select value={selectedKeys[provider] || ""} onChange={e => setSelectedKeys(old => ({ ...old, [provider]: e.target.value }))}><option value="">Choose a saved key</option>{(keyRecords[provider] || []).map(k => <option key={k.id} value={k.id}>{k.label}</option>)}</select></label>
+          <label>Key label<input value={keyLabel} onChange={e => setKeyLabel(e.target.value)} placeholder="Primary, backup, project..." /></label>
+          <label className="span-two">New API key<input type="password" autoComplete="off" value={keyInput} onChange={e => setKeyInput(e.target.value)} placeholder={"Paste another " + selected.name + " API key"} /></label>
+          <div className="span-two model-discovery"><button className="text-btn" onClick={refreshModels} disabled={!ready || !passphrase || modelsLoading}>{modelsLoading ? "Discovering models…" : "↻ Discover available models"}</button><span>{models.length ? models.length + " models discovered" : "Model list is fetched live from the provider."}</span><select value="" onChange={e => { if (e.target.value) setModel(e.target.value); }}><option value="">Select a discovered model…</option>{models.map(m => <option key={m.id} value={m.id}>{m.name} · {m.id}</option>)}</select></div>
         </div>
-        <div className="settings-foot"><span className={ready ? "saved" : "unsaved"}>{ready ? "● Key saved on this device" : "○ No key saved for this provider"}</span><div><button className="text-btn" onClick={removeKey} disabled={!ready}>Remove key</button><button className="primary small" onClick={saveKey} disabled={!keyInput.trim() || passphrase.length < 10}>Encrypt & save</button></div></div>
+        <div className="settings-foot"><span className={ready ? "saved" : "unsaved"}>{ready ? "● Key saved on this device" : "○ No key saved for this provider"}</span><div><button className="text-btn" onClick={removeKey} disabled={!ready || !selectedKeys[provider]}>Remove selected key</button><button className="primary small" onClick={saveKey} disabled={!keyInput.trim() || passphrase.length < 10}>Encrypt & save</button></div></div>
         <p className="security-note">Security note: use a unique passphrase. Anyone with access to this browser profile and its unlocked session may be able to use your keys. Never paste keys into public repos or screenshots.</p>
       </section>}
       <div className="content">
@@ -160,13 +205,13 @@ export default function Home() {
             <label>Who is it for?<input value={audience} onChange={e => setAudience(e.target.value)} placeholder="e.g. Freelancers, first-time founders, students..." /></label>
             <label>What problem should it solve?<input value={problem} onChange={e => setProblem(e.target.value)} placeholder="The specific frustration or outcome..." /></label>\n            <label>Supporting references (optional)<textarea value={references} onChange={e => setReferences(e.target.value)} rows={2} placeholder="Paste notes, examples, research, links, or source material..." /></label>
             <div className="engine-row"><div><span className={ready ? "pulse" : "pulse muted"}/><span>{ready ? selected.name + " connected" : "API key required"}</span></div><button className="text-btn" onClick={() => setSettings(true)}>Manage keys ↗</button></div>
-            <button className="primary generate" onClick={() => generate("brief")} disabled={busy || !idea.trim() || !ready || !passphrase}>Generate product brief <span>↗</span></button>
+            <button className="primary generate" onClick={() => generate("brief")} disabled={busy || !idea.trim() || !ready || !passphrase || !model.trim()}>Generate product brief <span>↗</span></button>
             {!ready && <p className="hint">Add an API key in Settings to activate generation.</p>}
           </section>
           <section className="output-card">
             <div className="section-title"><div><div className="eyebrow">02 / WORKBENCH</div><h2>Build your product</h2></div><span className="live-tag">● LIVE WORKSPACE</span></div>
             <div className="workflow">
-              {([{id:"brief",n:"01",name:"Opportunity brief",desc:"Find the right angle"},{id:"outline",n:"02",name:"Product outline",desc:"Design the full structure"},{id:"map",n:"03",name:"Transformation map",desc:"Define the before and after"},{id:"product",n:"04",name:"Create product",desc:"Generate the actual content"},{id:"brand",n:"05",name:"Brand kit",desc:"Set the visual direction"},{id:"sales",n:"06",name:"Sales page",desc:"Prepare the offer"}] as const).map(item => <button key={item.id} className={"workflow-item " + (stage === item.id ? "selected" : "")} onClick={() => generate(item.id)} disabled={busy || !idea.trim() || !ready || !passphrase}><span className="workflow-num">{item.n}</span><span className="workflow-copy"><b>{item.name}</b><small>{item.desc}</small></span><span className="arrow">↗</span></button>)}
+              {([{id:"brief",n:"01",name:"Opportunity brief",desc:"Find the right angle"},{id:"outline",n:"02",name:"Product outline",desc:"Design the full structure"},{id:"map",n:"03",name:"Transformation map",desc:"Define the before and after"},{id:"product",n:"04",name:"Create product",desc:"Generate the actual content"},{id:"brand",n:"05",name:"Brand kit",desc:"Set the visual direction"},{id:"sales",n:"06",name:"Sales page",desc:"Prepare the offer"}] as const).map(item => <button key={item.id} className={"workflow-item " + (stage === item.id ? "selected" : "")} onClick={() => generate(item.id)} disabled={busy || !idea.trim() || !ready || !passphrase || !model.trim()}><span className="workflow-num">{item.n}</span><span className="workflow-copy"><b>{item.name}</b><small>{item.desc}</small></span><span className="arrow">↗</span></button>)}
             </div>
             <div className="status-line">{busy ? <><span className="spinner"/> {status}</> : <><span className="status-dot"/> {status}</>}</div>
             {error && <div className="error">{error}</div>}
