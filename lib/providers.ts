@@ -1,7 +1,7 @@
 export type Provider =
   | "openai" | "anthropic" | "gemini" | "groq" | "openrouter"
   | "aion" | "mistral" | "zai" | "kilo" | "llm7"
-  | "nvidia" | "modelscope" | "ovh" | "siliconflow";
+  | "nvidia" | "modelscope" | "ovh" | "siliconflow" | "gonka";
 
 export type ProviderDefinition = {
   id: Provider;
@@ -26,6 +26,7 @@ export const PROVIDERS: ProviderDefinition[] = [
   { id: "modelscope", name: "ModelScope", baseUrl: "https://api-inference.modelscope.cn/v1", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: true, note: "Account binding and identity verification may be required." },
   { id: "ovh", name: "OVHcloud AI Endpoints", baseUrl: "https://oai.endpoints.kepler.ai.cloud.ovh.net/v1", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: false, note: "Anonymous access is heavily rate-limited." },
   { id: "siliconflow", name: "SiliconFlow", baseUrl: "https://api.siliconflow.cn/v1", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: true, note: "Identity verification may be required." },
+  { id: "gonka", name: "Gonka Broker", baseUrl: "https://proxy.gonkabroker.com/v1", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: true, note: "Phone verification may be required; free quota is shared and model availability rotates." },
   { id: "openai", name: "OpenAI", baseUrl: "https://api.openai.com/v1", modelsPath: "/models", chatPath: "/responses", requiresApiKey: true },
   { id: "anthropic", name: "Anthropic", baseUrl: "https://api.anthropic.com/v1", modelsPath: "/models", chatPath: "/messages", requiresApiKey: true },
 ];
