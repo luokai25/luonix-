@@ -19,7 +19,7 @@ export const PROVIDERS: ProviderDefinition[] = [
   { id: "openrouter", name: "OpenRouter", baseUrl: "https://openrouter.ai/api/v1", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: true },
   { id: "gemini", name: "Google AI Studio", baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: true, note: "Review Google's free-tier data-use terms before sending confidential content." },
   { id: "aion", name: "Aion Labs", baseUrl: "https://api.aionlabs.ai/v1", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: true },
-  { id: "mistral", name: "Mistral AI", baseUrl: "https://api.mistral.ai/v1", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: true, autoFallback: false, note: "Free accounts may include limited monthly credits; disable automatic fallback to avoid unexpected metered usage." },
+  { id: "mistral", name: "Mistral AI", baseUrl: "https://api.mistral.ai/v1", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: true, autoFallback: false, note: "Free accounts may include limited monthly credits; usage can become metered. Review data-use and training opt-out settings." },
   { id: "zai", name: "Z AI", baseUrl: "https://open.bigmodel.cn/api/paas/v4", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: true },
   { id: "kilo", name: "Kilo Gateway", baseUrl: "https://api.kilo.ai/api/gateway", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: false },
   { id: "llm7", name: "LLM7", baseUrl: "https://api.llm7.io/v1", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: false },
