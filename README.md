@@ -11,7 +11,7 @@ Luonix is a browser-based AI Product Studio for researching opportunities and pr
 - Resumable, section-by-section eBook manuscript generation with a persistent chapter plan and local checkpoints
 - Brand kit and sales page
 - Editable Markdown source, sanitized preview, Markdown/HTML export, and browser print-to-PDF
-- Local project library (up to 30 recent projects)
+- Local project library (up to 10 recent research-heavy projects; compact evidence checkpoints)
 
 ## AI providers
 
