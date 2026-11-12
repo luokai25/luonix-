@@ -10,6 +10,7 @@ export type ProviderDefinition = {
   modelsPath: string;
   chatPath: string;
   requiresApiKey: boolean;
+  autoFallback?: boolean;
   note?: string;
 };
 
@@ -18,7 +19,7 @@ export const PROVIDERS: ProviderDefinition[] = [
   { id: "openrouter", name: "OpenRouter", baseUrl: "https://openrouter.ai/api/v1", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: true },
   { id: "gemini", name: "Google AI Studio", baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: true, note: "Review Google's free-tier data-use terms before sending confidential content." },
   { id: "aion", name: "Aion Labs", baseUrl: "https://api.aionlabs.ai/v1", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: true },
-  { id: "mistral", name: "Mistral AI", baseUrl: "https://api.mistral.ai/v1", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: true, note: "Review free-mode data-use and training opt-out settings." },
+  { id: "mistral", name: "Mistral AI", baseUrl: "https://api.mistral.ai/v1", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: true, autoFallback: false, note: "Free accounts may include limited monthly credits; disable automatic fallback to avoid unexpected metered usage." },
   { id: "zai", name: "Z AI", baseUrl: "https://open.bigmodel.cn/api/paas/v4", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: true },
   { id: "kilo", name: "Kilo Gateway", baseUrl: "https://api.kilo.ai/api/gateway", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: false },
   { id: "llm7", name: "LLM7", baseUrl: "https://api.llm7.io/v1", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: false },
@@ -28,8 +29,8 @@ export const PROVIDERS: ProviderDefinition[] = [
   { id: "siliconflow", name: "SiliconFlow", baseUrl: "https://api.siliconflow.cn/v1", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: true, note: "Identity verification may be required." },
   { id: "gonka", name: "Gonka Broker", baseUrl: "https://proxy.gonkabroker.com/v1", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: true, note: "Phone verification may be required; free quota is shared and model availability rotates." },
   { id: "cloudflare", name: "Cloudflare Workers AI", baseUrl: "https://api.cloudflare.com/client/v4/accounts", modelsPath: "/{accountId}/ai/v1/models", chatPath: "/{accountId}/ai/v1/chat/completions", requiresApiKey: true, note: "Save credentials as ACCOUNT_ID|API_TOKEN. Free usage is measured in Neurons." },
-  { id: "openai", name: "OpenAI", baseUrl: "https://api.openai.com/v1", modelsPath: "/models", chatPath: "/responses", requiresApiKey: true },
-  { id: "anthropic", name: "Anthropic", baseUrl: "https://api.anthropic.com/v1", modelsPath: "/models", chatPath: "/messages", requiresApiKey: true },
+  { id: "openai", name: "OpenAI", baseUrl: "https://api.openai.com/v1", modelsPath: "/models", chatPath: "/responses", requiresApiKey: true, autoFallback: false },
+  { id: "anthropic", name: "Anthropic", baseUrl: "https://api.anthropic.com/v1", modelsPath: "/models", chatPath: "/messages", requiresApiKey: true, autoFallback: false },
 ];
 
 export const PROVIDER_BY_ID = Object.fromEntries(PROVIDERS.map(p => [p.id, p])) as Record<Provider, ProviderDefinition>;
