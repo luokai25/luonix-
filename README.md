@@ -40,7 +40,7 @@ Model IDs are not treated as permanent constants: choose a discovered model or e
 
 ### Intelligent fallback
 
-The selected provider/model is tried first. If it reports a rate limit, temporary availability error, timeout, unsupported model or server error, Luonix may try other configured providers. Authentication errors stop the fallback chain and are shown with diagnostics.
+The selected provider/model is tried first. If it reports a rate limit, temporary availability error, timeout, unsupported model or server error, Luonix may try other configured providers. Authentication errors stop the fallback chain and are shown with diagnostics. Automatic fallback selects only models flagged as free by provider-specific rules. Mistral, OpenAI and Anthropic are excluded from automatic fallback by default to avoid unexpectedly using metered plans; you can still choose them manually. The registry is maintained in Luonix code and is not automatically synchronized with the catalogue repository.
 
 Luonix does not rotate multiple keys from the same provider to bypass quotas. Provider limits are determined by provider, account, model and plan; adding more keys does not automatically multiply an account's allowance. Free tiers, eligible models, commercial-use permissions and data-use policies can change. Review provider terms before sending customer or confidential material.
 
