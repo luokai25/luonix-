@@ -231,7 +231,7 @@ export default function Home() {
       setOutput(partial);
       persist(partial);
     }
-    const sourceList = research.sources.slice(0, 45).map(x => "[" + x.id + "] " + x.title + " — " + x.url).join("\n");
+    const sourceList = research.sources.slice(0, 20).map(x => "[" + x.id + "] " + x.title + " — " + x.url).join("\n");
     const final = "# " + plan.title + "\n\n*" + plan.subtitle + "*\n\n> " + plan.promise + "\n\n" + completed.map(x => "## " + x.title + "\n\n" + x.content).join("\n\n---\n\n") + "\n\n## Research sources\n\n" + sourceList;
     setOutput(final);
     setStage("product");
@@ -267,7 +267,7 @@ export default function Home() {
         const detail = Array.isArray(data.attempts) ? data.attempts.map((x: { provider: string; status: number; error: string }) => x.provider + " (" + (x.status || "network") + "): " + x.error).join(" · ") : "";
         throw new Error([data.error || "Generation failed.", detail].filter(Boolean).join(" | "));
       }
-      const sourceAppendix = research && research.idea === idea ? "\n\n## Research sources\n\n" + research.sources.slice(0, 45).map(x => "[" + x.id + "] " + x.title + " — " + x.url).join("\n") : "";
+      const sourceAppendix = research && research.idea === idea ? "\n\n## Research sources\n\n" + research.sources.slice(0, 30).map(x => "[" + x.id + "] " + x.title + " — " + x.url).join("\n") : "";
       const finalOutput = data.output + sourceAppendix;
       setOutput(finalOutput);
       setStage(task);
