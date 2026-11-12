@@ -38,13 +38,27 @@ async function searchOne(query: string, apiKey: string) {
   const response = await fetch("https://api.tavily.com/search", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: "Bearer " + apiKey },
-    body: JSON.stringify({ query, topic: "general", search_depth: "advanced", max_results: 20, include_answer: false, include_raw_content: true }),
+    body: JSON.stringify({ query, topic: "general", search_depth: "advanced", max_results: 20, chunks_per_source: 3, include_answer: false, include_raw_content: true, include_published_date: true, include_usage: true }),
     cache: "no-store",
-    signal: AbortSignal.timeout(35000)
+    signal: AbortSignal.timeout(20000)
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data?.detail || data?.message || data?.error || "Tavily search failed (" + response.status + ").");
-  return Array.isArray(data.results) ? data.results as TavilyResult[] : [];
+  if (!response.ok) throw new Error(data?.detail?.error || data?.detail || data?.message || data?.error || "Tavily search failed (" + response.status + ").");
+  return { results: Array.isArray(data.results) ? data.results as TavilyResult[] : [], credits: Number(data.usage?.credits || 2) };
+}
+
+async function extractBatch(urls: string[], query: string, apiKey: string) {
+  if (!urls.length) return { results: [] as { url: string; raw_content?: string }[], credits: 0 };
+  const response = await fetch("https://api.tavily.com/extract", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + apiKey },
+    body: JSON.stringify({ urls, query, extract_depth: "basic", format: "markdown", timeout: 15, include_usage: true }),
+    cache: "no-store",
+    signal: AbortSignal.timeout(18000)
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data?.detail?.error || data?.detail || data?.message || "Tavily extraction failed (" + response.status + ").");
+  return { results: Array.isArray(data.results) ? data.results as { url: string; raw_content?: string }[] : [], credits: Number(data.usage?.credits || 0) };
 }
 
 export async function POST(req: NextRequest) {
@@ -61,12 +75,12 @@ export async function POST(req: NextRequest) {
     if (apiKey.length < 8 || apiKey.length > 500) return NextResponse.json({ error: "Add a valid Tavily search API key in Settings." }, { status: 400 });
 
     const queries = buildQueries(idea, audience, problem);
-    const settled: { query: string; results: TavilyResult[]; error?: string }[] = [];
-    for (let i = 0; i < queries.length; i += 4) {
-      const batch = queries.slice(i, i + 4);
+    const settled: { query: string; results: TavilyResult[]; credits: number; error?: string }[] = [];
+    for (let i = 0; i < queries.length; i += 5) {
+      const batch = queries.slice(i, i + 5);
       const results = await Promise.all(batch.map(async query => {
-        try { return { query, results: await searchOne(query, apiKey) }; }
-        catch (error) { return { query, results: [], error: error instanceof Error ? error.message : "Search failed" }; }
+        try { const result = await searchOne(query, apiKey); return { query, ...result }; }
+        catch (error) { return { query, results: [], credits: 0, error: error instanceof Error ? error.message : "Search failed" }; }
       }));
       settled.push(...results);
     }
@@ -79,22 +93,40 @@ export async function POST(req: NextRequest) {
       if (!existing || (source.score || 0) > (existing.source.score || 0)) unique.set(url, { source: { ...source, url }, query: item.query });
     }
     const ranked = [...unique.values()].sort((a, b) => (b.source.score || 0) - (a.source.score || 0));
-    const selected = ranked.slice(0, 45);
-    const sources = ranked.slice(0, 200).map((item, index) => ({
-      id: "S" + (index + 1),
-      title: String(item.source.title || item.source.url || "Untitled source").slice(0, 240),
-      url: item.source.url || "",
-      domain: (() => { try { return new URL(item.source.url || "").hostname.replace(/^www\./, ""); } catch { return ""; } })(),
-      snippet: String(item.source.content || "").slice(0, 700),
-      publishedDate: item.source.published_date || null,
-      relevance: Number(item.source.score || 0)
-    }));
+    const selected = ranked.slice(0, 30);
+    const extracted = new Map<string, string>();
+    const extractionErrors: string[] = [];
+    let extractionCredits = 0;
+    for (let i = 0; i < selected.length; i += 15) {
+      const batch = selected.slice(i, i + 15);
+      try {
+        const result = await extractBatch(batch.map(x => x.source.url || "").filter(Boolean), [problem, idea].filter(Boolean).join(" "), apiKey);
+        extractionCredits += result.credits;
+        for (const item of result.results) if (item.url && item.raw_content) extracted.set(cleanUrl(item.url), item.raw_content);
+      } catch (error) {
+        extractionErrors.push(error instanceof Error ? error.message : "Source extraction failed");
+      }
+    }
+    const sources = ranked.slice(0, 200).map((item, index) => {
+      const fullText = extracted.get(cleanUrl(item.source.url || "")) || item.source.raw_content || item.source.content || "";
+      return {
+        id: "S" + (index + 1),
+        title: String(item.source.title || item.source.url || "Untitled source").slice(0, 240),
+        url: item.source.url || "",
+        domain: (() => { try { return new URL(item.source.url || "").hostname.replace(/^www\./, ""); } catch { return ""; } })(),
+        snippet: String(fullText).slice(0, 700),
+        publishedDate: item.source.published_date || null,
+        relevance: Number(item.source.score || 0),
+        extracted: extracted.has(cleanUrl(item.source.url || ""))
+      };
+    });
     const context = selected.map((item, index) => {
-      const source = item.source;
-      const raw = String(source.raw_content || source.content || "").replace(/\s+/g, " ").slice(0, 2200);
-      return `[S${index + 1}] ${source.title || "Untitled"} | ${source.url}\nSearch query: ${item.query}\nEvidence: ${raw}`;
+      const url = cleanUrl(item.source.url || "");
+      const raw = String(extracted.get(url) || item.source.raw_content || item.source.content || "").replace(/\s+/g, " ").slice(0, 2800);
+      return `[S${index + 1}] ${item.source.title || "Untitled"} | ${item.source.url}\nSearch query: ${item.query}\nEvidence: ${raw}`;
     }).join("\n\n---\n\n");
     const successfulQueries = settled.filter(x => !x.error).length;
+    const searchCredits = settled.reduce((n, x) => n + x.credits, 0);
     return NextResponse.json({
       idea,
       queries,
@@ -104,12 +136,15 @@ export async function POST(req: NextRequest) {
         rawResults: settled.reduce((n, x) => n + x.results.length, 0),
         uniqueSources: ranked.length,
         sourcesIncludedInAnalysis: selected.length,
+        pagesExtracted: extracted.size,
         domains: new Set(sources.map(s => s.domain).filter(Boolean)).size,
-        estimatedCredits: successfulQueries * 2
+        searchCredits,
+        extractionCredits,
+        estimatedCredits: searchCredits + extractionCredits
       },
       sources,
       researchContext: context,
-      warnings: settled.filter(x => x.error).map(x => x.query + ": " + x.error)
+      warnings: [...settled.filter(x => x.error).map(x => x.query + ": " + x.error), ...extractionErrors]
     });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Research request failed." }, { status: 500 });
