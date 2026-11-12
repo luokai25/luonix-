@@ -59,7 +59,7 @@ A Tavily API key is required. Save it in Settings; it is encrypted locally using
 
 ## Long-form eBook generation
 
-For eBooks, Luonix first asks a model for a structured book plan, then writes the introduction, core chapters, conclusion and two bonus assets in separate model requests. Each completed section is saved to the local project library. If a request fails or the browser closes, reopen the saved project and run Create Product again to continue from completed sections.
+For eBooks, Luonix first asks a model for a structured book plan, then writes the introduction, core chapters, conclusion and two bonus assets in separate model requests. Other formats (Notion templates, online courses, AI tools, automations and prompt collections) receive a six-component asset plan plus implementation, QA and bonus sections. Each completed section is saved to the local project library. If a request fails or the browser closes, reopen the saved project and run Create Product again to continue from completed sections.
 
 The current target is roughly 900–1,300 words per section across eight core chapters, introduction, conclusion and two bonuses. Actual word count depends on the selected model and its output limits. A generated manuscript can be downloaded as Markdown or HTML, or printed/saved as PDF through the browser print dialog.
 
