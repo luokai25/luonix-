@@ -32,9 +32,24 @@ export async function POST(req: NextRequest) {
     if (!response.ok) return NextResponse.json({ error: data?.error?.message || data?.message || "Model discovery failed.", status: response.status }, { status: response.status });
     const raw = Array.isArray(data.data) ? data.data : Array.isArray(data.models) ? data.models : [];
     const models = raw.map((item: any) => {
-      const id = String(item.id || item.name || "").replace(/^models\//, "");
+      const id = String(item.id || item.name || "").replace(/^models\\//, "");
       const pricing = item.pricing || {};
-      const isFree = provider === "openrouter" && (id.endsWith(":free") || (Number(pricing.prompt) === 0 && Number(pricing.completion) === 0));
+      const hasPricing = pricing.prompt !== undefined && pricing.completion !== undefined;
+      const zeroPriced = hasPricing && Number(pricing.prompt) === 0 && Number(pricing.completion) === 0;
+      const cloudflarePaidModels = new Set([
+        "@cf/moonshotai/kimi-k2.6", "@cf/moonshotai/kimi-k2.7-code",
+        "@cf/zai-org/glm-5.2", "@cf/zai-org/glm-5.3", "@cf/zai-org/glm-5.3-flash",
+        "@cf/deepseek-ai/deepseek-v4-flash-0731", "@cf/deepseek-ai/deepseek-v4-pro-0813"
+      ]);
+      const isFree =
+        zeroPriced ||
+        (provider === "openrouter" && id.endsWith(":free")) ||
+        (provider === "gemini" && /(gemini-(3\\.[0-9]+-flash|2\\.5-flash)|gemma-4)/i.test(id)) ||
+        (provider === "zai" && /glm-(4\\.7-flash|4\\.5-flash|4\\.6v-flash)/i.test(id)) ||
+        (provider === "cloudflare" && !cloudflarePaidModels.has(id)) ||
+        (provider === "kilo" && (id.endsWith(":free") || id === "kilo-auto/free" || id === "openrouter/free")) ||
+        (provider === "llm7" && !/\\bpro\\b/i.test(id)) ||
+        ["groq", "aion", "nvidia", "modelscope", "ovh", "gonka"].includes(provider);
       return { id, name: String(item.displayName || item.name || item.id || id), contextLength: Number(item.context_length || item.inputTokenLimit || 0) || null, isFree };
     }).filter((item: { id: string }) => item.id && !/(embedding|moderation|whisper|audio|transcription|guard)/i.test(item.id));
     return NextResponse.json({ provider, name: definition.name, models, checkedAt: new Date().toISOString(), note: definition.note || null });
