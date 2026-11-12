@@ -8,6 +8,12 @@ import DOMPurify from "dompurify";
 
 type ResearchBundle = { idea: string; stats: { queriesRun: number; successfulQueries: number; rawResults: number; uniqueSources: number; sourcesIncludedInAnalysis: number; pagesExtracted: number; domains: number; searchCredits: number; extractionCredits: number; estimatedCredits: number }; sources: { id: string; title: string; url: string; domain: string; snippet: string; publishedDate: string | null; relevance: number; extracted: boolean }[]; researchContext: string; queries: string[]; warnings: string[] };
 type SavedProject = { id: string; idea: string; kind: string; audience: string; problem: string; references: string; tone: string; stage: string; output: string; research?: ResearchBundle | null; productPlan?: { idea: string; kind: string; title: string; subtitle: string; promise: string; sections: { title: string; purpose: string }[] }; productSections?: { title: string; content: string }[]; updatedAt: number };
+
+function compactResearch(bundle: ResearchBundle | null) {
+  if (!bundle) return null;
+  const context = bundle.researchContext.split("\n\n---\n\n").slice(0, 20).join("\n\n---\n\n");
+  return { ...bundle, sources: bundle.sources.slice(0, 20), researchContext: context };
+}
 const providers = PROVIDERS;
 const kinds = ["eBook", "Notion template", "PDF guide", "Online course", "AI tool", "Automation", "Prompt collection", "Other"];
 const tones = ["Warm and direct", "Calm expert", "Playful", "Premium and editorial", "Minimal and practical", "Bold and persuasive"];
@@ -203,9 +209,9 @@ export default function Home() {
     setActiveProductId(id);
     let completed = productPlan && productPlan.idea === idea && productPlan.kind === kind ? [...productSections] : [];
     const persist = (partial: string) => {
-      const project: SavedProject = { id, idea, kind, audience, problem, references, tone, stage: "product", output: partial, research, productPlan: plan!, productSections: completed, updatedAt: Date.now() };
+      const project: SavedProject = { id, idea, kind, audience, problem, references, tone, stage: "product", output: partial, research: compactResearch(research), productPlan: plan!, productSections: completed, updatedAt: Date.now() };
       const old = JSON.parse(localStorage.getItem("luonix-projects") || "[]") as SavedProject[];
-      const next = [project, ...old.filter(x => x.id !== id)].slice(0, 30);
+      const next = [project, ...old.filter(x => x.id !== id)].slice(0, 10);
       localStorage.setItem("luonix-projects", JSON.stringify(next));
       setSavedProjects(next);
     };
@@ -271,7 +277,7 @@ export default function Home() {
       const finalOutput = data.output + sourceAppendix;
       setOutput(finalOutput);
       setStage(task);
-      const project: SavedProject = { id: crypto.randomUUID(), idea, kind, audience, problem, references, tone, stage: task, output: finalOutput, research, updatedAt: Date.now() };
+      const project: SavedProject = { id: crypto.randomUUID(), idea, kind, audience, problem, references, tone, stage: task, output: finalOutput, research: compactResearch(research), updatedAt: Date.now() };
       setSavedProjects(old => {
         const next = [project, ...old.filter(x => x.idea !== idea)].slice(0, 30);
         localStorage.setItem("luonix-projects", JSON.stringify(next));
