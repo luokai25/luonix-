@@ -265,9 +265,11 @@ export default function Home() {
         const detail = Array.isArray(data.attempts) ? data.attempts.map((x: { provider: string; status: number; error: string }) => x.provider + " (" + (x.status || "network") + "): " + x.error).join(" · ") : "";
         throw new Error([data.error || "Generation failed.", detail].filter(Boolean).join(" | "));
       }
-      setOutput(data.output);
+      const sourceAppendix = research && research.idea === idea ? "\n\n## Research sources\n\n" + research.sources.slice(0, 45).map(x => "[" + x.id + "] " + x.title + " — " + x.url).join("\n") : "";
+      const finalOutput = data.output + sourceAppendix;
+      setOutput(finalOutput);
       setStage(task);
-      const project: SavedProject = { id: crypto.randomUUID(), idea, kind, audience, problem, references, tone, stage: task, output: data.output, research, updatedAt: Date.now() };
+      const project: SavedProject = { id: crypto.randomUUID(), idea, kind, audience, problem, references, tone, stage: task, output: finalOutput, research, updatedAt: Date.now() };
       setSavedProjects(old => {
         const next = [project, ...old.filter(x => x.idea !== idea)].slice(0, 30);
         localStorage.setItem("luonix-projects", JSON.stringify(next));
