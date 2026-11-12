@@ -235,7 +235,7 @@ export default function Home() {
     setStage("product");
     setProductSections(completed);
     persist(final);
-    setStatus("eBook manuscript complete · " + completed.length + " sections · " + final.split(/\s+/).length.toLocaleString() + " words · research citations included. Download Markdown/HTML or print to PDF.");
+    setStatus("Product build complete · " + completed.length + " sections/assets · " + final.split(/\s+/).length.toLocaleString() + " words · research citations included. Download Markdown/HTML or print to PDF.");
     setTab("preview");
   }
   async function generate(task: "brief" | "outline" | "map" | "product" | "brand" | "sales") {
