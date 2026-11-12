@@ -144,14 +144,14 @@ export default function Home() {
   }
   async function buildCandidates(primaryKey: string | undefined, primaryModel: string) {
     const primary = { provider, apiKey: primaryKey, model: primaryModel };
-    const fallbackProviders = providers.filter(other => other.id !== provider && (!other.requiresApiKey || (keyRecords[other.id] || []).length > 0)).slice(0, 12);
+    const fallbackProviders = providers.filter(other => other.id !== provider && other.autoFallback !== false && (!other.requiresApiKey || (keyRecords[other.id] || []).length > 0)).slice(0, 12);
     const discovered = await Promise.all(fallbackProviders.map(async other => {
       try {
         const records = keyRecords[other.id] || [];
         const apiKey = other.requiresApiKey ? await readSecret(other.id, passphrase, selectedKeys[other.id] || records[0]?.id) : undefined;
         const response = await fetch("/api/models", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider: other.id, apiKey }) });
         const data = await response.json();
-        const fallbackModel = data.models?.[0]?.id;
+        const fallbackModel = data.models?.find((candidate: { isFree?: boolean }) => candidate.isFree)?.id;
         return response.ok && fallbackModel ? { provider: other.id, apiKey, model: fallbackModel } : null;
       } catch { return null; }
     }));
