@@ -49,13 +49,13 @@ Luonix does not rotate multiple keys from the same provider to bypass quotas. Pr
 The research route uses Tavily Search. It runs ten targeted searches covering pain points, audience needs, alternatives, negative reviews, pricing and willingness to pay, market evidence, community questions, existing educational products, underserved gaps and case studies.
 
 - Up to 20 results per query (up to 200 result records before URL deduplication)
-- Up to 45 top-ranked source excerpts included in the model's research context
+- Up to 30 top-ranked pages are extracted in full (two batches of at most 15 URLs) and their best evidence is included in the model's research context
 - Up to 200 unique source links shown in the research response
 - Source IDs such as `[S1]` are used for citations in generated briefs and manuscripts
 - Source content is treated as untrusted input; instructions embedded in pages are not followed
 - Research is tied to the exact idea so evidence from an old project is not silently reused
 
-A Tavily API key is required. Save it in Settings; it is encrypted locally using the same browser vault. The key is decrypted in the browser and sent to the same-origin research route for the request only. Tavily currently documents 1,000 free API credits per month; advanced search costs 2 credits per query, so a ten-query run can use up to 20 credits. Check current pricing and terms before running large research jobs.
+A Tavily API key is required. Save it in Settings; it is encrypted locally using the same browser vault. The key is decrypted in the browser and sent to the same-origin research route for the request only. Tavily currently documents 1,000 free API credits per month. Advanced search costs 2 credits per query and basic extraction costs 1 credit per 5 successful URL extractions; a full ten-query run plus 30 successful page extractions is approximately 26 credits. The app displays the actual returned usage when available. Check current pricing and terms before running large research jobs.
 
 ## Long-form eBook generation
 
@@ -84,7 +84,7 @@ Open http://localhost:3000.
 
 ## Current limitations
 
-- Research can return up to 200 result records, but only the top 45 selected excerpts are passed to the model in one research context. This is not the same as reading 200 complete books or papers.
+- Research can return up to 200 result records, deduplicate them, and attempt full-page extraction on the top 30 pages. It does not read 200 complete books or papers; extraction can fail for blocked, unavailable or unsupported pages, and the app falls back to search excerpts.
 - Tavily Search is currently the integrated search provider. Additional search/crawl providers such as Firecrawl or Exa can be added later for independent cross-checking and deeper site crawling.
 - The eBook workflow is resumable in browser local storage, not backed by a durable server job queue. Clearing browser storage or changing devices can remove local projects and checkpoints.
 - No account authentication, cloud project sync, server-side billing/credits, multi-user rate limiting, image generation, or direct Shopify/Gumroad publishing yet.
