@@ -6,7 +6,7 @@ import { PROVIDERS, type Provider } from "@/lib/providers";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 
-type ResearchBundle = { idea: string; stats: { queriesRun: number; successfulQueries: number; rawResults: number; uniqueSources: number; sourcesIncludedInAnalysis: number; domains: number; estimatedCredits: number }; sources: { id: string; title: string; url: string; domain: string; snippet: string; publishedDate: string | null; relevance: number }[]; researchContext: string; queries: string[]; warnings: string[] };
+type ResearchBundle = { idea: string; stats: { queriesRun: number; successfulQueries: number; rawResults: number; uniqueSources: number; sourcesIncludedInAnalysis: number; pagesExtracted: number; domains: number; searchCredits: number; extractionCredits: number; estimatedCredits: number }; sources: { id: string; title: string; url: string; domain: string; snippet: string; publishedDate: string | null; relevance: number; extracted: boolean }[]; researchContext: string; queries: string[]; warnings: string[] };
 type SavedProject = { id: string; idea: string; kind: string; audience: string; problem: string; references: string; tone: string; stage: string; output: string; research?: ResearchBundle | null; productPlan?: { idea: string; kind: string; title: string; subtitle: string; promise: string; sections: { title: string; purpose: string }[] }; productSections?: { title: string; content: string }[]; updatedAt: number };
 const providers = PROVIDERS;
 const kinds = ["eBook", "Notion template", "PDF guide", "Online course", "AI tool", "Automation", "Prompt collection", "Other"];
@@ -170,7 +170,7 @@ export default function Home() {
   }
   async function generateBook(base: string, candidates: { provider: Provider; apiKey?: string; model: string }[]) {
     if (!research || research.idea !== idea) throw new Error("Run market research for this exact idea before creating a publication-ready eBook. Luonix needs evidence, not invented market claims.");
-    const evidenceBlocks = research.researchContext.split("\n\n---\n\n").slice(0, 25).join("\n\n---\n\n");
+    const evidenceBlocks = research.researchContext.split("\n\n---\n\n").slice(0, 20).join("\n\n---\n\n");
     const bookBase = base.replace(research.researchContext, evidenceBlocks);
     const isBook = kind === "eBook" || kind === "PDF guide";
     let plan = productPlan && productPlan.idea === idea && productPlan.kind === kind ? productPlan : null;
