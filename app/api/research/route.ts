@@ -40,7 +40,7 @@ async function searchOne(query: string, apiKey: string) {
     headers: { "Content-Type": "application/json", Authorization: "Bearer " + apiKey },
     body: JSON.stringify({ query, topic: "general", search_depth: "advanced", max_results: 20, chunks_per_source: 3, include_answer: false, include_raw_content: true, include_published_date: true, include_usage: true }),
     cache: "no-store",
-    signal: AbortSignal.timeout(20000)
+    signal: AbortSignal.timeout(15000)
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data?.detail?.error || data?.detail || data?.message || data?.error || "Tavily search failed (" + response.status + ").");
@@ -52,7 +52,7 @@ async function extractBatch(urls: string[], query: string, apiKey: string) {
   const response = await fetch("https://api.tavily.com/extract", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: "Bearer " + apiKey },
-    body: JSON.stringify({ urls, query, extract_depth: "basic", format: "markdown", timeout: 15, include_usage: true }),
+    body: JSON.stringify({ urls, query, extract_depth: "basic", format: "markdown", timeout: 12, include_usage: true }),
     cache: "no-store",
     signal: AbortSignal.timeout(18000)
   });
@@ -97,15 +97,14 @@ export async function POST(req: NextRequest) {
     const extracted = new Map<string, string>();
     const extractionErrors: string[] = [];
     let extractionCredits = 0;
-    for (let i = 0; i < selected.length; i += 15) {
-      const batch = selected.slice(i, i + 15);
-      try {
-        const result = await extractBatch(batch.map(x => x.source.url || "").filter(Boolean), [problem, idea].filter(Boolean).join(" "), apiKey);
-        extractionCredits += result.credits;
-        for (const item of result.results) if (item.url && item.raw_content) extracted.set(cleanUrl(item.url), item.raw_content);
-      } catch (error) {
-        extractionErrors.push(error instanceof Error ? error.message : "Source extraction failed");
-      }
+    const extractionBatches = [selected.slice(0, 15), selected.slice(15, 30)].filter(batch => batch.length);
+    const extractionResults = await Promise.all(extractionBatches.map(async batch => {
+      try { return await extractBatch(batch.map(x => x.source.url || "").filter(Boolean), [problem, idea].filter(Boolean).join(" "), apiKey); }
+      catch (error) { extractionErrors.push(error instanceof Error ? error.message : "Source extraction failed"); return { results: [], credits: 0 }; }
+    }));
+    for (const result of extractionResults) {
+      extractionCredits += result.credits;
+      for (const item of result.results) if (item.url && item.raw_content) extracted.set(cleanUrl(item.url), item.raw_content);
     }
     const sources = ranked.slice(0, 200).map((item, index) => {
       const fullText = extracted.get(cleanUrl(item.source.url || "")) || item.source.raw_content || item.source.content || "";
