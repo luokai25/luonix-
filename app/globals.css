@@ -14,3 +14,5 @@
 .provider-note{grid-column:1/-1;margin:-5px 0 4px;font-size:10px;color:#b7a37d;line-height:1.5}
 
 .provider-link{color:#a9e5c7;font-size:10px;text-decoration:none;align-self:flex-start}.provider-link:hover{text-decoration:underline}
+
+.bulk-key-panel{display:flex;flex-direction:column;gap:9px;border:1px solid var(--line);border-radius:9px;padding:12px;margin:4px 0 12px}.bulk-key-panel label{display:flex;flex-direction:column;gap:6px}.bulk-key-panel textarea{width:100%;resize:vertical;background:#0c0e0f;border:1px solid #2b3031;border-radius:8px;color:#edf2ee;padding:10px;font:11px/1.5 ui-monospace,monospace}.bulk-key-panel .text-btn{align-self:flex-start;border:1px solid #39423e;border-radius:7px;padding:8px 10px}
