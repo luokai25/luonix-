@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
         (provider === "cloudflare" && !cloudflarePaidModels.has(id)) ||
         (provider === "kilo" && (id.endsWith(":free") || id === "kilo-auto/free" || id === "openrouter/free")) ||
         (provider === "llm7" && !/\bpro\b/i.test(id)) ||
-        ["groq", "aion", "nvidia", "modelscope", "ovh", "gonka"].includes(provider);
+        ["groq", "aion", "modelscope", "ovh", "gonka"].includes(provider);
       return { id, name: String(item.displayName || item.name || item.id || id), contextLength: Number(item.context_length || item.inputTokenLimit || 0) || null, isFree };
     }).filter((item: { id: string }) => item.id && !/(embedding|moderation|whisper|audio|transcription|guard)/i.test(item.id));
     return NextResponse.json({ provider, name: definition.name, models, checkedAt: new Date().toISOString(), note: definition.note || null });
