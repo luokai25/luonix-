@@ -279,7 +279,7 @@ export default function Home() {
       setStage(task);
       const project: SavedProject = { id: crypto.randomUUID(), idea, kind, audience, problem, references, tone, stage: task, output: finalOutput, research: compactResearch(research), updatedAt: Date.now() };
       setSavedProjects(old => {
-        const next = [project, ...old.filter(x => x.idea !== idea)].slice(0, 30);
+        const next = [project, ...old.filter(x => x.idea !== idea)].slice(0, 10);
         localStorage.setItem("luonix-projects", JSON.stringify(next));
         return next;
       });
