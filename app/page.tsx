@@ -155,7 +155,9 @@ export default function Home() {
         return response.ok && fallbackModel ? { provider: other.id, apiKey, model: fallbackModel } : null;
       } catch { return null; }
     }));
-    return [primary, ...discovered.filter((x): x is { provider: Provider; apiKey?: string; model: string } => Boolean(x)).slice(0, 7)];
+    const usable: { provider: Provider; apiKey?: string; model: string }[] = [];
+    for (const item of discovered) if (item) usable.push(item);
+    return [primary, ...usable.slice(0, 7)];
   }
   async function callModel(prompt: string, candidates: { provider: Provider; apiKey?: string; model: string }[]) {
     const response = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ candidates, prompt }) });
