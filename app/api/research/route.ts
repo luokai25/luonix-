@@ -47,12 +47,12 @@ async function searchOne(query: string, apiKey: string) {
   return { results: Array.isArray(data.results) ? data.results as TavilyResult[] : [], credits: Number(data.usage?.credits || 2) };
 }
 
-async function extractBatch(urls: string[], query: string, apiKey: string) {
+async function extractBatch(urls: string[], apiKey: string) {
   if (!urls.length) return { results: [] as { url: string; raw_content?: string }[], credits: 0 };
   const response = await fetch("https://api.tavily.com/extract", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: "Bearer " + apiKey },
-    body: JSON.stringify({ urls, query, extract_depth: "basic", format: "markdown", timeout: 12, include_usage: true }),
+    body: JSON.stringify({ urls, extract_depth: "basic", format: "markdown", timeout: 12, include_usage: true }),
     cache: "no-store",
     signal: AbortSignal.timeout(18000)
   });
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
     let extractionCredits = 0;
     const extractionBatches = [selected.slice(0, 15), selected.slice(15, 30)].filter(batch => batch.length);
     const extractionResults = await Promise.all(extractionBatches.map(async batch => {
-      try { return await extractBatch(batch.map(x => x.source.url || "").filter(Boolean), [problem, idea].filter(Boolean).join(" "), apiKey); }
+      try { return await extractBatch(batch.map(x => x.source.url || "").filter(Boolean), apiKey); }
       catch (error) { extractionErrors.push(error instanceof Error ? error.message : "Source extraction failed"); return { results: [], credits: 0 }; }
     }));
     for (const result of extractionResults) {
