@@ -23,7 +23,7 @@ export const PROVIDERS: ProviderDefinition[] = [
   { id: "zai", name: "Z AI", baseUrl: "https://open.bigmodel.cn/api/paas/v4", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: true },
   { id: "kilo", name: "Kilo Gateway", baseUrl: "https://api.kilo.ai/api/gateway", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: false },
   { id: "llm7", name: "LLM7", baseUrl: "https://api.llm7.io/v1", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: false },
-  { id: "nvidia", name: "NVIDIA NIM", baseUrl: "https://integrate.api.nvidia.com/v1", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: true },
+  { id: "nvidia", name: "NVIDIA NIM", baseUrl: "https://integrate.api.nvidia.com/v1", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: true, autoFallback: false, note: "Free Developer Program endpoints are for prototyping, research and testing; production use requires an NVIDIA AI Enterprise license." },
   { id: "modelscope", name: "ModelScope", baseUrl: "https://api-inference.modelscope.cn/v1", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: true, note: "Account binding and identity verification may be required." },
   { id: "ovh", name: "OVHcloud AI Endpoints", baseUrl: "https://oai.endpoints.kepler.ai.cloud.ovh.net/v1", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: false, note: "Anonymous access is heavily rate-limited." },
   { id: "siliconflow", name: "SiliconFlow", baseUrl: "https://api.siliconflow.cn/v1", modelsPath: "/models", chatPath: "/chat/completions", requiresApiKey: true, note: "Identity verification may be required." },
