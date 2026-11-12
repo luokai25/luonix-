@@ -31,6 +31,7 @@ export default function Home() {
   const [taskModels, setTaskModels] = useState<Record<string, string>>({});
   const [passphrase, setPassphrase] = useState("");
   const [keyInput, setKeyInput] = useState("");
+  const [bulkKeyInput, setBulkKeyInput] = useState("");
   const [keys, setKeys] = useState<Record<string, boolean>>({});
   const [settings, setSettings] = useState(false);
   const [idea, setIdea] = useState("");
@@ -118,6 +119,21 @@ export default function Home() {
       setKeyInput("");
       setStatus(selected.name + " key encrypted and saved on this device.");
     } catch (e) { setError(e instanceof Error ? e.message : "Could not save key."); }
+  }
+  async function saveBulkKeys() {
+    setError("");
+    const secrets = [...new Set(bulkKeyInput.split(/\r?\n/).map(x => x.trim()).filter(Boolean))];
+    if (!secrets.length) { setError("Paste one API key per line."); return; }
+    if (secrets.length > 30) { setError("Save at most 30 keys per batch."); return; }
+    try {
+      for (let i = 0; i < secrets.length; i++) await saveSecret(provider, secrets[i], passphrase, selected.name + " " + (i + 1));
+      const records = await listSecrets(provider);
+      setKeyRecords(old => ({ ...old, [provider]: records }));
+      setSelectedKeys(old => ({ ...old, [provider]: records[records.length - 1]?.id || "" }));
+      setKeys(old => ({ ...old, [provider]: records.length > 0 }));
+      setBulkKeyInput("");
+      setStatus("Encrypted and saved " + secrets.length + " keys. Only your selected key is used; keys are not rotated to bypass quotas.");
+    } catch (e) { setError(e instanceof Error ? e.message : "Could not save the key batch."); }
   }
   async function removeKey() {
     await deleteSecret(provider, selectedKeys[provider]);
@@ -334,7 +350,8 @@ export default function Home() {
           <div className="span-two search-key-panel"><b>Web research engine · Tavily</b><small>Ten targeted searches can return up to 200 result records; Luonix then attempts full-page extraction on the 30 highest-ranked URLs. The search key is encrypted in the local vault. Tavily includes 1,000 free credits per month.</small><label>Saved search key<select value={selectedSearchKey} onChange={e => setSelectedSearchKey(e.target.value)}><option value="">Choose saved Tavily key</option>{searchKeyRecords.map(k => <option key={k.id} value={k.id}>{k.label}</option>)}</select></label><a className="provider-link" href="https://app.tavily.com" target="_blank" rel="noreferrer">Get a free Tavily API key ↗</a><label>New Tavily API key<input type="password" autoComplete="off" value={searchKeyInput} onChange={e => setSearchKeyInput(e.target.value)} placeholder="Paste your Tavily API key" /></label><button className="primary small" onClick={saveSearchKey} disabled={!searchKeyInput.trim() || passphrase.length < 10}>Encrypt & save search key</button></div>
           {selected.requiresApiKey && <label>Saved key<select value={selectedKeys[provider] || ""} onChange={e => setSelectedKeys(old => ({ ...old, [provider]: e.target.value }))}><option value="">Choose a saved key</option>{(keyRecords[provider] || []).map(k => <option key={k.id} value={k.id}>{k.label}</option>)}</select></label>}
           {selected.requiresApiKey && <label>Key label<input value={keyLabel} onChange={e => setKeyLabel(e.target.value)} placeholder="Primary, backup, project..." /></label>}
-          {selected.requiresApiKey && <label className="span-two">New API key<input type="password" autoComplete="off" value={keyInput} onChange={e => setKeyInput(e.target.value)} placeholder={provider === "cloudflare" ? "ACCOUNT_ID|API_TOKEN" : "Paste another " + selected.name + " API key"} /></label>}
+          {selected.requiresApiKey && <label className="span-two">New API key<input type="password" autoComplete="off" value={keyInput} onChange={e => setKeyInput(e.target.value)} placeholder={provider === "cloudflare" ? "ACCOUNT_ID|API_TOKEN" : "Paste another " + selected.name + " API key"} /></label>
+          <label className="span-two">Bulk add keys (one per line)<textarea value={bulkKeyInput} onChange={e => setBulkKeyInput(e.target.value)} placeholder={"Paste multiple " + selected.name + " keys, one per line"} rows={3} /></label><button className="text-btn span-two" onClick={saveBulkKeys} disabled={!bulkKeyInput.trim() || passphrase.length < 10}>Encrypt & save key batch</button>}
           <div className="span-two model-discovery"><button className="text-btn" onClick={refreshModels} disabled={!ready || (selected.requiresApiKey && !passphrase) || modelsLoading}>{modelsLoading ? "Discovering models…" : "↻ Discover available models"}</button><span>{models.length ? models.length + " models discovered" : "Model list is fetched live from the provider."}</span><select value="" onChange={e => { if (e.target.value) setModel(e.target.value); }}><option value="">Select a discovered model…</option>{models.map(m => <option key={m.id} value={m.id}>{m.name}{m.isFree ? " · FREE" : ""} · {m.id}</option>)}</select></div>
           <div className="span-two task-routing"><div><b>Task-specific model routing</b><small>Choose a different model for a particular generation stage. Overrides apply only to the selected provider.</small></div><div className="task-routing-fields"><select value={taskProfile} onChange={e => { setTaskProfile(e.target.value); setTaskModel(taskModels[provider + ":" + e.target.value] || ""); }}><option value="brief">Opportunity brief</option><option value="outline">Product outline</option><option value="map">Transformation map</option><option value="product">Full product</option><option value="brand">Brand kit</option><option value="sales">Sales page</option></select><input list="task-model-options" value={taskModel} onChange={e => setTaskModel(e.target.value)} placeholder="Model ID override (leave blank for default)" /><datalist id="task-model-options">{models.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</datalist><button className="text-btn" onClick={saveTaskModel}>Save task model</button></div><small>{Object.keys(taskModels).length} task override(s) saved locally.</small></div>
         </div>
