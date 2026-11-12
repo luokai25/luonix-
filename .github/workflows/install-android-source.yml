@@ -1,0 +1,23 @@
+name: Install Android APK source
+on:
+  push:
+    paths:
+      - 'android-source.tar.gz'
+permissions:
+  contents: write
+jobs:
+  install-source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Extract Android source
+        run: |
+          tar -xzf android-source.tar.gz
+          rm android-source.tar.gz
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Add standalone Android AI Product Generator"
+          git push
